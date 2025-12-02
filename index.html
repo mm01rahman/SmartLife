@@ -186,6 +186,10 @@
 
   const STATE_TOPICS = Object.values(DEVICES).map(d => d.stateTopic);
 
+  // detect if running over HTTPS (e.g. GitHub Pages)
+  const isHttps = window.location.protocol === "https:";
+  const canUseLocal = !isHttps; // only try local when NOT https
+
   // ====== UI ELEMENTS ======
   const modeLabel   = document.getElementById("modeLabel");
   const localStatus = document.getElementById("localStatus");
@@ -223,15 +227,17 @@
     }
   }
 
-  // init UI
   updateDeviceUI("light1", "OFF");
   updateDeviceUI("light2", "OFF");
 
   let client = null;
   let currentMode = ""; // "local" or "cloud"
+  let subscriptionsDone = false;
 
   function setupSubscriptions() {
-    if (!client) return;
+    if (!client || subscriptionsDone) return;
+    subscriptionsDone = true;
+
     client.subscribe(STATE_TOPICS, (err, granted) => {
       if (err) {
         console.error("Subscribe error:", err);
@@ -256,8 +262,18 @@
   function retryConnection() {
     setTimeout(() => {
       modeLabel.textContent = "Retrying connection…";
-      connectLocalFirst();
+      startConnectionFlow();
     }, 10000);
+  }
+
+  function startConnectionFlow() {
+    if (canUseLocal) {
+      connectLocalFirst();
+    } else {
+      setPill(localStatus, "Local: disabled over HTTPS", "pill-bad");
+      modeLabel.textContent = "HTTPS detected – using Cloud mode";
+      connectCloudFallback();
+    }
   }
 
   function connectLocalFirst() {
@@ -265,13 +281,14 @@
     setPill(localStatus, "Local: connecting…", "pill-warn");
 
     const localClient = mqtt.connect(LOCAL_URL, {
-      reconnectPeriod: 0,     // 🔴 no auto reconnect
+      reconnectPeriod: 0,
       connectTimeout: 3000
     });
 
     let resolved = false;
 
     localClient.on("connect", () => {
+      console.log("Connected to local broker");
       resolved = true;
       currentMode = "local";
       client = localClient;
@@ -314,13 +331,14 @@
     const cloudClient = mqtt.connect(CLOUD_URL, {
       username: CLOUD_USER,
       password: CLOUD_PASS,
-      reconnectPeriod: 0,   // 🔴 no auto reconnect
+      reconnectPeriod: 0,
       connectTimeout: 4000
     });
 
     let resolved = false;
 
     cloudClient.on("connect", () => {
+      console.log("Connected to HiveMQ Cloud");
       resolved = true;
       currentMode = "cloud";
       client = cloudClient;
@@ -376,7 +394,7 @@
   }
 
   bindButtons();
-  connectLocalFirst();
+  startConnectionFlow();  
 </script>
 </body>
 </html>
