@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Smart Home Dashboard</title>
+  <title>Smart Home Mesh Dashboard</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     body {
@@ -16,7 +16,7 @@
       justify-content: center;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       width: 100%;
       padding: 24px;
     }
@@ -30,13 +30,42 @@
       text-align: center;
       font-size: 0.85rem;
       opacity: 0.7;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
+
+    /* Mode badge */
+    .mode-badge-wrapper {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .mode-badge {
+      font-size: 0.8rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      display: inline-block;
+    }
+    .mode-badge.router-cloud {
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.5);
+      color: #bbf7d0;
+    }
+    .mode-badge.router-local {
+      background: rgba(59,130,246,0.12);
+      border-color: rgba(59,130,246,0.5);
+      color: #bfdbfe;
+    }
+    .mode-badge.ap-mesh {
+      background: rgba(244,114,182,0.12);
+      border-color: rgba(244,114,182,0.5);
+      color: #f9a8d4;
+    }
+
     .status-row {
       display: flex;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
       font-size: 0.8rem;
     }
     .pill {
@@ -47,6 +76,54 @@
     .pill-ok { background: #16a34a22; color: #4ade80; }
     .pill-bad { background: #b91c1c22; color: #f87171; }
     .pill-warn { background: #a1620722; color: #facc15; }
+
+    .http-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.8rem;
+      margin-bottom: 20px;
+      opacity: 0.85;
+    }
+    .http-row label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .http-input {
+      background: #020617;
+      border-radius: 999px;
+      border: 1px solid #1e293b;
+      padding: 4px 10px;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      width: 130px;
+      outline: none;
+    }
+    .http-input::placeholder {
+      color: #6b7280;
+    }
+    .http-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      background: #111827;
+      color: #e5e7eb;
+      box-shadow: 0 6px 20px rgba(15,23,42,0.8);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.2s ease;
+      white-space: nowrap;
+    }
+    .http-btn:hover {
+      background: #020617;
+    }
+    .http-btn:active {
+      transform: scale(0.97);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.8);
+    }
 
     .grid {
       display: grid;
@@ -63,7 +140,7 @@
     }
     .card h2 {
       margin: 0 0 4px;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
     }
     .device-topic {
       font-size: 0.7rem;
@@ -122,279 +199,576 @@
       opacity: 0.6;
       margin-top: 16px;
     }
+    .hint code {
+      background: #020617;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid #1e293b;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Smart Home – Lights</h1>
+    <h1>Smart Home Mesh – ESP1 & ESP2</h1>
     <div id="modeLabel" class="mode">Connecting…</div>
+
+    <!-- New: Scenario mode badge -->
+    <div class="mode-badge-wrapper">
+      <span id="scenarioBadge" class="mode-badge router-cloud">
+        Mode: Detecting…
+      </span>
+    </div>
 
     <div class="status-row">
       <span id="localStatus" class="pill pill-warn">Local: connecting…</span>
       <span id="cloudStatus" class="pill pill-warn">Cloud: connecting…</span>
     </div>
 
+    <!-- HTTP fallback controls -->
+    <div class="http-row">
+      <label>
+        ESP1 IP:
+        <input
+          id="esp1Ip"
+          class="http-input"
+          placeholder="192.168.4.1"
+          value="192.168.4.1"
+        />
+      </label>
+      <label>
+        ESP2 IP:
+        <input
+          id="esp2Ip"
+          class="http-input"
+          placeholder="192.168.4.2"
+          value=""
+        />
+      </label>
+      <button id="httpFallbackBtn" class="http-btn">
+        HTTP Fallback: Poll /api/state
+      </button>
+    </div>
+
     <div class="grid">
-      <!-- Light 1 -->
-      <div class="card" id="card-light1">
-        <h2>Light 1</h2>
-        <div class="device-topic">CMD: home/light1/cmd &nbsp;·&nbsp; STATE: home/light1/state</div>
-        <div class="circle off" id="circle-light1"></div>
-        <div class="state-text" id="stateText-light1">Unknown</div>
-        <div class="small" id="sourceText-light1">Waiting for state…</div>
-        <button class="btn btn-off" id="btn-light1">Turn ON</button>
+      <!-- ESP1 Light -->
+      <div class="card" id="card-esp1_light">
+        <h2>ESP1 – Light</h2>
+        <div class="device-topic">
+          CMD: home/esp1/light/cmd &nbsp;·&nbsp;
+          STATE: home/esp1/light/state
+        </div>
+        <div class="circle off" id="circle-esp1_light"></div>
+        <div class="state-text" id="stateText-esp1_light">Unknown</div>
+        <div class="small" id="sourceText-esp1_light">Waiting for state…</div>
+        <button class="btn btn-off" id="btn-esp1_light">Turn ON</button>
       </div>
 
-      <!-- Light 2 -->
-      <div class="card" id="card-light2">
-        <h2>Light 2</h2>
-        <div class="device-topic">CMD: home/light2/cmd &nbsp;·&nbsp; STATE: home/light2/state</div>
-        <div class="circle off" id="circle-light2"></div>
-        <div class="state-text" id="stateText-light2">Unknown</div>
-        <div class="small" id="sourceText-light2">Waiting for state…</div>
-        <button class="btn btn-off" id="btn-light2">Turn ON</button>
+      <!-- ESP1 Fan -->
+      <div class="card" id="card-esp1_fan">
+        <h2>ESP1 – Fan</h2>
+        <div class="device-topic">
+          CMD: home/esp1/fan/cmd &nbsp;·&nbsp;
+          STATE: home/esp1/fan/state
+        </div>
+        <div class="circle off" id="circle-esp1_fan"></div>
+        <div class="state-text" id="stateText-esp1_fan">Unknown</div>
+        <div class="small" id="sourceText-esp1_fan">Waiting for state…</div>
+        <button class="btn btn-off" id="btn-esp1_fan">Turn ON</button>
+      </div>
+
+      <!-- ESP2 Light -->
+      <div class="card" id="card-esp2_light">
+        <h2>ESP2 – Light</h2>
+        <div class="device-topic">
+          CMD: home/esp2/light/cmd &nbsp;·&nbsp;
+          STATE: home/esp2/light/state
+        </div>
+        <div class="circle off" id="circle-esp2_light"></div>
+        <div class="state-text" id="stateText-esp2_light">Unknown</div>
+        <div class="small" id="sourceText-esp2_light">Waiting for state…</div>
+        <button class="btn btn-off" id="btn-esp2_light">Turn ON</button>
+      </div>
+
+      <!-- ESP2 Fan -->
+      <div class="card" id="card-esp2_fan">
+        <h2>ESP2 – Fan</h2>
+        <div class="device-topic">
+          CMD: home/esp2/fan/cmd &nbsp;·&nbsp;
+          STATE: home/esp2/fan/state
+        </div>
+        <div class="circle off" id="circle-esp2_fan"></div>
+        <div class="state-text" id="stateText-esp2_fan">Unknown</div>
+        <div class="small" id="sourceText-esp2_fan">Waiting for state…</div>
+        <button class="btn btn-off" id="btn-esp2_fan">Turn ON</button>
       </div>
     </div>
 
     <div class="hint">
-      Dashboard first tries local MQTT (192.168.0.144:9001).<br />
-      If that fails, it automatically falls back to HiveMQ Cloud.
+      MQTT uses:<br />
+      <code>home/esp1/{light|fan}/{cmd|state}</code>,
+      <code>home/esp2/{light|fan}/{cmd|state}</code>.<br />
+      When MQTT is unavailable, the same buttons fall back to HTTP:<br />
+      <code>/api/set?node=1|2&amp;light=0|1&amp;fan=0|1</code><br />
+      And you can poll states via:<br />
+      <code>/api/state</code> on each ESP (AP mesh or router mode).
     </div>
   </div>
 
   <script>
-  // ====== CONFIG ======
-  const DEVICES = {
-    light1: {
-      id: "light1",
-      cmdTopic: "home/light1/cmd",
-      stateTopic: "home/light1/state",
-      state: "OFF"
-    },
-    light2: {
-      id: "light2",
-      cmdTopic: "home/light2/cmd",
-      stateTopic: "home/light2/state",
-      state: "OFF"
-    }
-  };
-
-  const LOCAL_URL = "ws://192.168.0.144:9001";
-  const CLOUD_URL = "wss://855677dcf06a47379e9bb069a058ee3a.s1.eu.hivemq.cloud:8884/mqtt";
-  const CLOUD_USER = "SmartLife";
-  const CLOUD_PASS = "Metrouni2025";
-
-  const STATE_TOPICS = Object.values(DEVICES).map(d => d.stateTopic);
-
-  // detect if running over HTTPS (e.g. GitHub Pages)
-  const isHttps = window.location.protocol === "https:";
-  const canUseLocal = !isHttps; // only try local when NOT https
-
-  // ====== UI ELEMENTS ======
-  const modeLabel   = document.getElementById("modeLabel");
-  const localStatus = document.getElementById("localStatus");
-  const cloudStatus = document.getElementById("cloudStatus");
-
-  function setPill(el, text, cls) {
-    el.textContent = text;
-    el.className = "pill " + cls;
+// ====== CONFIG (topics & MQTT) ======
+const DEVICES = {
+  esp1_light: {
+    id: "esp1_light",
+    label: "ESP1 – Light",
+    type: "light",
+    cmdTopic: "home/esp1/light/cmd",
+    stateTopic: "home/esp1/light/state",
+    state: "OFF"
+  },
+  esp1_fan: {
+    id: "esp1_fan",
+    label: "ESP1 – Fan",
+    type: "fan",
+    cmdTopic: "home/esp1/fan/cmd",
+    stateTopic: "home/esp1/fan/state",
+    state: "OFF"
+  },
+  esp2_light: {
+    id: "esp2_light",
+    label: "ESP2 – Light",
+    type: "light",
+    cmdTopic: "home/esp2/light/cmd",
+    stateTopic: "home/esp2/light/state",
+    state: "OFF"
+  },
+  esp2_fan: {
+    id: "esp2_fan",
+    label: "ESP2 – Fan",
+    type: "fan",
+    cmdTopic: "home/esp2/fan/cmd",
+    stateTopic: "home/esp2/fan/state",
+    state: "OFF"
   }
+};
 
-  function updateDeviceUI(deviceId, state, source = "") {
-    const dev = DEVICES[deviceId];
-    if (!dev) return;
+const LOCAL_URL = "ws://192.168.0.144:9001"; // optional local broker
+const CLOUD_URL = "wss://855677dcf06a47379e9bb069a058ee3a.s1.eu.hivemq.cloud:8884/mqtt";
+const CLOUD_USER = "SmartLife";
+const CLOUD_PASS = "Metrouni2025";
 
-    dev.state = (state || "").toUpperCase() === "ON" ? "ON" : "OFF";
+const STATE_TOPICS = Object.values(DEVICES).map(d => d.stateTopic);
 
-    const circle   = document.getElementById("circle-" + deviceId);
-    const stateEl  = document.getElementById("stateText-" + deviceId);
-    const sourceEl = document.getElementById("sourceText-" + deviceId);
-    const btn      = document.getElementById("btn-" + deviceId);
+const isHttps = window.location.protocol === "https:";
+const canUseLocal = !isHttps; // avoid ws:// from https page
 
-    const isOn = dev.state === "ON";
+// ====== UI ELEMENTS ======
+const modeLabel       = document.getElementById("modeLabel");
+const localStatus     = document.getElementById("localStatus");
+const cloudStatus     = document.getElementById("cloudStatus");
+const esp1IpInput     = document.getElementById("esp1Ip");
+const esp2IpInput     = document.getElementById("esp2Ip");
+const httpFallbackBtn = document.getElementById("httpFallbackBtn");
+const scenarioBadge   = document.getElementById("scenarioBadge");
 
-    circle.classList.toggle("on", isOn);
-    circle.classList.toggle("off", !isOn);
+function setPill(el, text, cls) {
+  el.textContent = text;
+  el.className = "pill " + cls;
+}
 
-    stateEl.textContent = isOn ? "Light is ON" : "Light is OFF";
-    btn.textContent = isOn ? "Turn OFF" : "Turn ON";
+function updateDeviceUI(deviceId, state, source = "") {
+  const dev = DEVICES[deviceId];
+  if (!dev) return;
 
-    btn.classList.toggle("btn-on", isOn);
-    btn.classList.toggle("btn-off", !isOn);
+  dev.state = (state || "").toUpperCase() === "ON" ? "ON" : "OFF";
 
-    if (source) {
-      sourceEl.textContent = "Last update from: " + source;
-    }
+  const circle   = document.getElementById("circle-" + deviceId);
+  const stateEl  = document.getElementById("stateText-" + deviceId);
+  const sourceEl = document.getElementById("sourceText-" + deviceId);
+  const btn      = document.getElementById("btn-" + deviceId);
+
+  const isOn = dev.state === "ON";
+
+  circle.classList.toggle("on", isOn);
+  circle.classList.toggle("off", !isOn);
+
+  const kind = dev.type === "fan" ? "Fan" : "Light";
+  stateEl.textContent = isOn ? `${kind} is ON` : `${kind} is OFF`;
+  btn.textContent = isOn ? "Turn OFF" : "Turn ON";
+
+  btn.classList.toggle("btn-on", isOn);
+  btn.classList.toggle("btn-off", !isOn);
+
+  if (source) {
+    sourceEl.textContent = "Last update from: " + source;
   }
+}
 
-  updateDeviceUI("light1", "OFF");
-  updateDeviceUI("light2", "OFF");
+// Initialize UI
+Object.keys(DEVICES).forEach(id => updateDeviceUI(id, "OFF"));
 
-  let client = null;
-  let currentMode = ""; // "local" or "cloud"
-  let subscriptionsDone = false;
+let client = null;
+let currentMode = ""; // "local" or "cloud"
+let subscriptionsDone = false;
+let apiInfo = null;   // optional /api/info cache
 
-  function setupSubscriptions() {
-    if (!client || subscriptionsDone) return;
-    subscriptionsDone = true;
+function setupSubscriptions() {
+  if (!client || subscriptionsDone) return;
+  subscriptionsDone = true;
 
-    client.subscribe(STATE_TOPICS, (err, granted) => {
-      if (err) {
-        console.error("Subscribe error:", err);
-      } else {
-        console.log("Subscribed to:", granted.map(g => g.topic).join(", "));
-      }
-    });
-
-    client.on("message", (topic, payload) => {
-      const msg = payload.toString().trim();
-      console.log("MQTT:", topic, msg);
-
-      const devEntry = Object.values(DEVICES).find(d => d.stateTopic === topic);
-      if (devEntry) {
-        const source = currentMode === "local" ? "Local" :
-                       currentMode === "cloud" ? "Cloud" : "Unknown";
-        updateDeviceUI(devEntry.id, msg, source);
-      }
-    });
-  }
-
-  function retryConnection() {
-    setTimeout(() => {
-      modeLabel.textContent = "Retrying connection…";
-      startConnectionFlow();
-    }, 10000);
-  }
-
-  function startConnectionFlow() {
-    if (canUseLocal) {
-      connectLocalFirst();
+  client.subscribe(STATE_TOPICS, (err, granted) => {
+    if (err) {
+      console.error("Subscribe error:", err);
     } else {
-      setPill(localStatus, "Local: disabled over HTTPS", "pill-bad");
-      modeLabel.textContent = "HTTPS detected – using Cloud mode";
+      console.log("Subscribed to:", granted.map(g => g.topic).join(", "));
+    }
+  });
+
+  client.on("message", (topic, payload) => {
+    const msg = payload.toString().trim();
+    console.log("MQTT:", topic, msg);
+
+    const devEntry = Object.values(DEVICES).find(d => d.stateTopic === topic);
+    if (devEntry) {
+      const source = currentMode === "local" ? "Local MQTT" :
+                     currentMode === "cloud" ? "HiveMQ Cloud" : "Unknown";
+      updateDeviceUI(devEntry.id, msg, source);
+    }
+  });
+}
+
+function retryConnection() {
+  setTimeout(() => {
+    modeLabel.textContent = "Retrying connection…";
+    startConnectionFlow();
+  }, 10000);
+}
+
+function startConnectionFlow() {
+  if (canUseLocal) {
+    connectLocalFirst();
+  } else {
+    setPill(localStatus, "Local: disabled over HTTPS", "pill-bad");
+    modeLabel.textContent = "HTTPS detected – using Cloud mode";
+    connectCloudFallback();
+  }
+}
+
+function connectLocalFirst() {
+  modeLabel.textContent = "Trying local broker…";
+  setPill(localStatus, "Local: connecting…", "pill-warn");
+
+  const localClient = mqtt.connect(LOCAL_URL, {
+    reconnectPeriod: 0,
+    connectTimeout: 3000
+  });
+
+  let resolved = false;
+
+  localClient.on("connect", () => {
+    console.log("Connected to local broker");
+    resolved = true;
+    currentMode = "local";
+    client = localClient;
+
+    modeLabel.textContent = "Connected (Local MQTT)";
+    setPill(localStatus, "Local: connected", "pill-ok");
+    setPill(cloudStatus, "Cloud: standby", "pill-warn");
+
+    setupSubscriptions();
+  });
+
+  localClient.on("error", (err) => {
+    console.error("Local MQTT error:", err && err.message);
+    localClient.end(true);
+    if (!resolved) {
+      resolved = true;
+      setPill(localStatus, "Local: failed", "pill-bad");
       connectCloudFallback();
     }
-  }
+  });
 
-  function connectLocalFirst() {
-    modeLabel.textContent = "Trying local broker…";
-    setPill(localStatus, "Local: connecting…", "pill-warn");
-
-    const localClient = mqtt.connect(LOCAL_URL, {
-      reconnectPeriod: 0,
-      connectTimeout: 3000
-    });
-
-    let resolved = false;
-
-    localClient.on("connect", () => {
-      console.log("Connected to local broker");
+  localClient.on("close", () => {
+    console.log("Local MQTT closed");
+    if (!resolved) {
       resolved = true;
-      currentMode = "local";
-      client = localClient;
+      setPill(localStatus, "Local: closed", "pill-bad");
+      connectCloudFallback();
+    } else if (currentMode === "local") {
+      setPill(localStatus, "Local: disconnected", "pill-bad");
+      modeLabel.textContent = "Local lost, trying Cloud…";
+      connectCloudFallback();
+    }
+  });
+}
 
-      modeLabel.textContent = "Connected (Local Mode)";
-      setPill(localStatus, "Local: connected", "pill-ok");
-      setPill(cloudStatus, "Cloud: standby", "pill-warn");
+function connectCloudFallback() {
+  modeLabel.textContent = "Trying HiveMQ Cloud…";
+  setPill(cloudStatus, "Cloud: connecting…", "pill-warn");
 
-      setupSubscriptions();
-    });
+  const cloudClient = mqtt.connect(CLOUD_URL, {
+    username: CLOUD_USER,
+    password: CLOUD_PASS,
+    reconnectPeriod: 0,
+    connectTimeout: 4000
+  });
 
-    localClient.on("error", (err) => {
-      console.error("Local MQTT error:", err && err.message);
-      localClient.end(true);
-      if (!resolved) {
-        resolved = true;
-        setPill(localStatus, "Local: failed", "pill-bad");
-        connectCloudFallback();
-      }
-    });
+  let resolved = false;
 
-    localClient.on("close", () => {
-      console.log("Local MQTT closed");
-      if (!resolved) {
-        resolved = true;
-        setPill(localStatus, "Local: closed", "pill-bad");
-        connectCloudFallback();
-      } else if (currentMode === "local") {
-        setPill(localStatus, "Local: disconnected", "pill-bad");
-        modeLabel.textContent = "Local lost, trying Cloud…";
-        connectCloudFallback();
-      }
-    });
-  }
+  cloudClient.on("connect", () => {
+    console.log("Connected to HiveMQ Cloud");
+    resolved = true;
+    currentMode = "cloud";
+    client = cloudClient;
 
-  function connectCloudFallback() {
-    modeLabel.textContent = "Trying HiveMQ Cloud…";
-    setPill(cloudStatus, "Cloud: connecting…", "pill-warn");
+    modeLabel.textContent = "Connected (Cloud MQTT)";
+    setPill(cloudStatus, "Cloud: connected", "pill-ok");
+    if (localStatus.textContent.includes("connecting")) {
+      setPill(localStatus, "Local: unavailable", "pill-bad");
+    }
 
-    const cloudClient = mqtt.connect(CLOUD_URL, {
-      username: CLOUD_USER,
-      password: CLOUD_PASS,
-      reconnectPeriod: 0,
-      connectTimeout: 4000
-    });
+    setupSubscriptions();
+  });
 
-    let resolved = false;
-
-    cloudClient.on("connect", () => {
-      console.log("Connected to HiveMQ Cloud");
+  cloudClient.on("error", (err) => {
+    console.error("Cloud MQTT error:", err && err.message);
+    cloudClient.end(true);
+    if (!resolved) {
       resolved = true;
-      currentMode = "cloud";
-      client = cloudClient;
+      setPill(cloudStatus, "Cloud: failed", "pill-bad");
+      modeLabel.textContent = "No MQTT broker available – HTTP only";
+      retryConnection();
+    }
+  });
 
-      modeLabel.textContent = "Connected (Cloud Mode)";
-      setPill(cloudStatus, "Cloud: connected", "pill-ok");
-      if (localStatus.textContent.includes("connecting")) {
-        setPill(localStatus, "Local: unavailable", "pill-bad");
-      }
+  cloudClient.on("close", () => {
+    console.log("Cloud MQTT closed");
+    if (!resolved) {
+      resolved = true;
+      setPill(cloudStatus, "Cloud: closed", "pill-bad");
+      modeLabel.textContent = "No MQTT broker available – HTTP only";
+      retryConnection();
+    } else if (currentMode === "cloud") {
+      setPill(cloudStatus, "Cloud: disconnected", "pill-bad");
+      modeLabel.textContent = "Disconnected from Cloud – HTTP only";
+      retryConnection();
+    }
+  });
+}
 
-      setupSubscriptions();
-    });
+// ====== HTTP STATE (/api/state) ======
+function applyHttpState(json, sourceLabel) {
+  if (!json || typeof json !== "object") return;
 
-    cloudClient.on("error", (err) => {
-      console.error("Cloud MQTT error:", err && err.message);
-      cloudClient.end(true);
-      if (!resolved) {
-        resolved = true;
-        setPill(cloudStatus, "Cloud: failed", "pill-bad");
-        modeLabel.textContent = "No broker available 😢";
-        retryConnection();
-      }
-    });
+  const src = `HTTP ${sourceLabel}`;
+  const node        = Number(json.node);
+  const light       = Number(json.light) === 1 ? "ON" : "OFF";
+  const fan         = Number(json.fan) === 1 ? "ON" : "OFF";
+  const remoteNode  = Number(json.remote_node);
+  const remoteLight = Number(json.remote_light) === 1 ? "ON" : "OFF";
+  const remoteFan   = Number(json.remote_fan) === 1 ? "ON" : "OFF";
 
-    cloudClient.on("close", () => {
-      console.log("Cloud MQTT closed");
-      if (!resolved) {
-        resolved = true;
-        setPill(cloudStatus, "Cloud: closed", "pill-bad");
-        modeLabel.textContent = "No broker available 😢";
-        retryConnection();
-      } else if (currentMode === "cloud") {
-        setPill(cloudStatus, "Cloud: disconnected", "pill-bad");
-        modeLabel.textContent = "Disconnected from Cloud";
-        retryConnection();
-      }
-    });
+  if (node === 1) {
+    if (DEVICES.esp1_light) updateDeviceUI("esp1_light", light, src);
+    if (DEVICES.esp1_fan)   updateDeviceUI("esp1_fan",   fan,   src);
+    if (remoteNode === 2) {
+      if (DEVICES.esp2_light) updateDeviceUI("esp2_light", remoteLight, src);
+      if (DEVICES.esp2_fan)   updateDeviceUI("esp2_fan",   remoteFan,   src);
+    }
+  } else if (node === 2) {
+    if (DEVICES.esp2_light) updateDeviceUI("esp2_light", light, src);
+    if (DEVICES.esp2_fan)   updateDeviceUI("esp2_fan",   fan,   src);
+    if (remoteNode === 1) {
+      if (DEVICES.esp1_light) updateDeviceUI("esp1_light", remoteLight, src);
+      if (DEVICES.esp1_fan)   updateDeviceUI("esp1_fan",   remoteFan,   src);
+    }
+  }
+}
+
+async function pollNode(ip, label) {
+  if (!ip) return;
+  const url = `http://${ip}/api/state`;
+  console.log("HTTP polling:", url);
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      console.warn("HTTP non-OK:", res.status, res.statusText);
+      return;
+    }
+    const json = await res.json();
+    console.log("HTTP state from", label, json);
+    applyHttpState(json, label);
+  } catch (err) {
+    console.error("HTTP error for", ip, err);
+  }
+}
+
+async function httpFallbackPoll() {
+  const ip1 = esp1IpInput.value.trim();
+  const ip2 = esp2IpInput.value.trim();
+
+  if (!ip1 && !ip2) {
+    alert("No ESP IPs known. (initApi should fill these automatically.)");
+    return;
   }
 
-  // Buttons
-  function bindButtons() {
-    Object.values(DEVICES).forEach(dev => {
-      const btn = document.getElementById("btn-" + dev.id);
-      btn.addEventListener("click", () => {
-        if (!client || !client.connected) {
-          alert("Not connected to MQTT broker!");
-          return;
-        }
-        const newState = dev.state === "ON" ? "OFF" : "ON";
+  modeLabel.textContent = "HTTP fallback: polling /api/state…";
+  await Promise.all([
+    pollNode(ip1, "ESP1"),
+    pollNode(ip2, "ESP2")
+  ]);
+  modeLabel.textContent = "HTTP fallback: last poll completed";
+}
+
+httpFallbackBtn.addEventListener("click", httpFallbackPoll);
+
+// ====== HTTP COMMAND FALLBACK (GET /api/set) ======
+async function sendHttpCommand(deviceId, newState) {
+  const [nodeStr, devType] = deviceId.split("_"); // "esp1", "light"
+  const nodeNum = nodeStr === "esp1" ? 1 : 2;
+
+  // Choose IP per node
+  let ip = "";
+  if (nodeNum === 1) {
+    ip = esp1IpInput.value.trim() || window.location.hostname;
+  } else if (nodeNum === 2) {
+    ip = esp2IpInput.value.trim() || window.location.hostname;
+  }
+
+  if (!ip) {
+    alert("No IP known for " + nodeStr.toUpperCase());
+    return;
+  }
+
+  const val = newState === "ON" ? 1 : 0;
+  const url = `http://${ip}/api/set?node=${nodeNum}&${devType}=${val}`;
+
+  console.log("HTTP SET →", url);
+  try {
+    const res = await fetch(url, { method: "GET", cache: "no-store" });
+    if (!res.ok) {
+      console.warn("HTTP SET non-OK:", res.status, res.statusText);
+    } else {
+      const json = await res.json();
+      console.log("HTTP SET resp:", json);
+      applyHttpState(json, `ESP${nodeNum}`);
+    }
+  } catch (err) {
+    console.error("HTTP SET error:", err);
+    alert("HTTP command failed for " + nodeStr.toUpperCase());
+  }
+}
+
+// ====== Buttons (MQTT primary, HTTP fallback) ======
+function bindButtons() {
+  Object.values(DEVICES).forEach(dev => {
+    const btn = document.getElementById("btn-" + dev.id);
+    btn.addEventListener("click", async () => {
+      const newState = dev.state === "ON" ? "OFF" : "ON";
+
+      // Prefer MQTT if connected
+      if (client && client.connected) {
         client.publish(dev.cmdTopic, newState, { qos: 0, retain: false });
-      });
+        return;
+      }
+
+      // Fallback: HTTP GET /api/set
+      await sendHttpCommand(dev.id, newState);
     });
+  });
+}
+
+// ====== Scenario Mode Badge Logic ======
+function updateScenarioBadge() {
+  if (!scenarioBadge) return;
+
+  let scenarioClass = "router-cloud";
+  let label = "Mode: Router+Cloud";
+
+  if (client && client.connected) {
+    if (currentMode === "cloud") {
+      scenarioClass = "router-cloud";
+      label = "Mode: Router+Cloud (MQTT)";
+    } else if (currentMode === "local") {
+      scenarioClass = "router-local";
+      label = "Mode: Router Local (MQTT)";
+    }
+  } else {
+    const host = window.location.hostname || "";
+    // AP mesh typically 192.168.4.x
+    if (/^192\.168\.4\./.test(host)) {
+      scenarioClass = "ap-mesh";
+      label = "Mode: AP Mesh (HTTP only)";
+    }
+    // Private LAN (router local) 192.168.x, 10.x, 172.16-31.x
+    else if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) {
+      scenarioClass = "router-local";
+      label = "Mode: Router Local (HTTP only)";
+    } else {
+      scenarioClass = "router-cloud";
+      label = "Mode: Router+Cloud (offline / HTTP)";
+    }
+
+    // If we got /api/info, we can refine label
+    if (apiInfo && typeof apiInfo.mode === "string") {
+      if (apiInfo.mode === "AP_STA" || apiInfo.mode === "AP") {
+        scenarioClass = "ap-mesh";
+        label = "Mode: AP Mesh (HTTP only)";
+      } else if (apiInfo.mode === "STA") {
+        // no MQTT → router local HTTP
+        scenarioClass = "router-local";
+        label = "Mode: Router Local (HTTP only)";
+      }
+    }
   }
 
-  bindButtons();
-  startConnectionFlow();  
+  scenarioBadge.textContent = label;
+  scenarioBadge.className = "mode-badge " + scenarioClass;
+}
+
+// ====== initApi: auto-detect host, call /api/info, fill IPs ======
+async function initApi() {
+  const host = window.location.hostname || "";
+
+  // 1) Auto-fill based on hostname if it's a private IP
+  if (/^192\.168\.4\./.test(host)) {
+    // AP mesh: controlling through the node you’re connected to.
+    esp1IpInput.value = host;
+    esp2IpInput.value = host; // same node also proxies remote via ESP-NOW
+  } else if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) {
+    // Router local (STA)
+    esp1IpInput.value = host;
+    esp2IpInput.value = host;
+  }
+
+  // 2) Try /api/info on the same host (if running from ESP)
+  if (host && host !== "localhost") {
+    try {
+      const res = await fetch(`http://${host}/api/info`, { cache: "no-store" });
+      if (res.ok) {
+        apiInfo = await res.json();
+        console.log("API info:", apiInfo);
+
+        // If we know the node number, you can customize behavior later
+        // Example: if node=1, treat host as ESP1, etc.
+        // For now, host already in IP boxes is good enough.
+      } else {
+        console.log("/api/info not available, status:", res.status);
+      }
+    } catch (e) {
+      console.log("Could not fetch /api/info:", e.message || e);
+    }
+  }
+
+  updateScenarioBadge();
+}
+
+// ====== Startup ======
+bindButtons();
+initApi();              // <--- auto-detect & /api/info
+startConnectionFlow();  // <--- MQTT connect
+updateScenarioBadge();
+setInterval(updateScenarioBadge, 2000); // keep it fresh while testing
 </script>
 </body>
 </html>
