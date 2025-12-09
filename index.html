@@ -130,7 +130,7 @@
       box-shadow: 0 3px 12px rgba(0,0,0,0.8);
     }
 
-    /* ===== Desktop grid: 2 rows (ESP1, ESP2) x 2 columns (Light, Fan) ===== */
+    /* ===== Desktop grid: ESP1 & ESP2 x (Light1, Light2) ===== */
     .grid {
       display: flex;
       flex-direction: column;
@@ -176,7 +176,6 @@
       margin-bottom: 6px;
     }
 
-    /* Round touch button in center */
     .circle-wrapper {
       display: flex;
       justify-content: center;
@@ -218,57 +217,6 @@
       opacity: 0.6;
     }
 
-    /* Fan speed regulator */
-    .speed-row {
-      margin-top: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      align-items: center;
-      font-size: 0.75rem;
-    }
-    .speed-label {
-      opacity: 0.7;
-    }
-    .speed-slider {
-      width: 100%;
-      max-width: 160px;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 4px;
-      border-radius: 999px;
-      background: #1f2937;
-      outline: none;
-    }
-    .speed-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #facc15;
-      border: 2px solid #111827;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(250,204,21,0.7);
-    }
-    .speed-slider::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #facc15;
-      border: 2px solid #111827;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(250,204,21,0.7);
-    }
-    .speed-ticks {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      max-width: 160px;
-      font-size: 0.7rem;
-      opacity: 0.6;
-    }
-
     .hint {
       text-align: center;
       font-size: 0.75rem;
@@ -282,9 +230,9 @@
       border: 1px solid #1e293b;
     }
 
-    /* ===== Mobile Quick Control “page” ===== */
+    /* ===== Mobile Quick Control ===== */
     .mobile-panel {
-      display: none; /* shown only on small screens */
+      display: none;
       margin-bottom: 18px;
     }
     .mobile-panel-title {
@@ -339,18 +287,12 @@
       font-size: 0.8rem;
       font-weight: 600;
     }
-    .mobile-speed-slider {
-      width: 100%;
-      max-width: 120px;
-    }
 
-    /* ===== Responsive rules ===== */
     @media (max-width: 768px) {
       .grid-row {
         grid-template-columns: 1fr;
       }
     }
-
     @media (max-width: 640px) {
       .mobile-panel {
         display: block;
@@ -409,57 +351,47 @@
       </button>
     </div>
 
-    <!-- ===== Mobile quick control (small screens only) ===== -->
+    <!-- ===== Mobile quick control ===== -->
     <div class="mobile-panel">
       <div class="mobile-panel-title">Quick Control (Mobile)</div>
       <div class="mobile-grid">
-        <!-- ESP1 Light -->
         <div class="mobile-card">
-          <div class="mobile-label">ESP1 Light</div>
+          <div class="mobile-label">ESP1 Light 1</div>
           <div class="mobile-round" id="mround-esp1_light">
             <span class="icon">💡</span>
           </div>
           <div class="mobile-state" id="mstate-esp1_light">OFF</div>
         </div>
-        <!-- ESP1 Fan -->
         <div class="mobile-card">
-          <div class="mobile-label">ESP1 Fan</div>
-          <div class="mobile-round" id="mround-esp1_fan">
-            <span class="icon">🌀</span>
+          <div class="mobile-label">ESP1 Light 2</div>
+          <div class="mobile-round" id="mround-esp1_light2">
+            <span class="icon">💡</span>
           </div>
-          <div class="mobile-state" id="mstate-esp1_fan">OFF</div>
-          <input id="mspeed-esp1_fan" type="range" class="speed-slider mobile-speed-slider"
-                 min="0" max="3" step="1" value="0" />
+          <div class="mobile-state" id="mstate-esp1_light2">OFF</div>
         </div>
-        <!-- ESP2 Light -->
         <div class="mobile-card">
-          <div class="mobile-label">ESP2 Light</div>
+          <div class="mobile-label">ESP2 Light 1</div>
           <div class="mobile-round" id="mround-esp2_light">
             <span class="icon">💡</span>
           </div>
           <div class="mobile-state" id="mstate-esp2_light">OFF</div>
         </div>
-        <!-- ESP2 Fan -->
         <div class="mobile-card">
-          <div class="mobile-label">ESP2 Fan</div>
-          <div class="mobile-round" id="mround-esp2_fan">
-            <span class="icon">🌀</span>
+          <div class="mobile-label">ESP2 Light 2</div>
+          <div class="mobile-round" id="mround-esp2_light2">
+            <span class="icon">💡</span>
           </div>
-          <div class="mobile-state" id="mstate-esp2_fan">OFF</div>
-          <input id="mspeed-esp2_fan" type="range" class="speed-slider mobile-speed-slider"
-                 min="0" max="3" step="1" value="0" />
+          <div class="mobile-state" id="mstate-esp2_light2">OFF</div>
         </div>
       </div>
     </div>
 
-    <!-- ===== Desktop / tablet detailed grid (2 rows x 2 columns) ===== -->
+    <!-- ===== Desktop / tablet grid ===== -->
     <div class="grid">
-      <!-- Row for ESP1 -->
       <div class="row-label">ESP1</div>
       <div class="grid-row">
-        <!-- ESP1 Light -->
         <div class="card" id="card-esp1_light">
-          <h2>ESP1 – Light</h2>
+          <h2>ESP1 – Light 1</h2>
           <div class="device-topic">
             CMD: home/esp1/light/cmd &nbsp;·&nbsp;
             STATE: home/esp1/light/state
@@ -469,41 +401,30 @@
               <span class="icon">💡</span>
             </div>
           </div>
-          <div class="state-text" id="stateText-esp1_light">Light is OFF</div>
+          <div class="state-text" id="stateText-esp1_light">Light 1 is OFF</div>
           <div class="small" id="sourceText-esp1_light">Waiting for state…</div>
         </div>
 
-        <!-- ESP1 Fan -->
-        <div class="card" id="card-esp1_fan">
-          <h2>ESP1 – Fan</h2>
+        <div class="card" id="card-esp1_light2">
+          <h2>ESP1 – Light 2</h2>
           <div class="device-topic">
-            CMD: home/esp1/fan/cmd &nbsp;·&nbsp;
-            STATE: home/esp1/fan/state
+            CMD: home/esp1/light2/cmd &nbsp;·&nbsp;
+            STATE: home/esp1/light2/state
           </div>
           <div class="circle-wrapper">
-            <div class="circle-button off" id="circle-esp1_fan">
-              <span class="icon">🌀</span>
+            <div class="circle-button off" id="circle-esp1_light2">
+              <span class="icon">💡</span>
             </div>
           </div>
-          <div class="state-text" id="stateText-esp1_fan">Fan is OFF</div>
-          <div class="small" id="sourceText-esp1_fan">Waiting for state…</div>
-          <div class="speed-row">
-            <div class="speed-label" id="speedLabel-esp1_fan">Speed: 0 (Off)</div>
-            <input id="speed-esp1_fan" type="range" class="speed-slider"
-                   min="0" max="3" step="1" value="0" />
-            <div class="speed-ticks">
-              <span>0</span><span>1</span><span>2</span><span>3</span>
-            </div>
-          </div>
+          <div class="state-text" id="stateText-esp1_light2">Light 2 is OFF</div>
+          <div class="small" id="sourceText-esp1_light2">Waiting for state…</div>
         </div>
       </div>
 
-      <!-- Row for ESP2 -->
       <div class="row-label" style="margin-top:10px;">ESP2</div>
       <div class="grid-row">
-        <!-- ESP2 Light -->
         <div class="card" id="card-esp2_light">
-          <h2>ESP2 – Light</h2>
+          <h2>ESP2 – Light 1</h2>
           <div class="device-topic">
             CMD: home/esp2/light/cmd &nbsp;·&nbsp;
             STATE: home/esp2/light/state
@@ -513,43 +434,33 @@
               <span class="icon">💡</span>
             </div>
           </div>
-          <div class="state-text" id="stateText-esp2_light">Light is OFF</div>
+          <div class="state-text" id="stateText-esp2_light">Light 1 is OFF</div>
           <div class="small" id="sourceText-esp2_light">Waiting for state…</div>
         </div>
 
-        <!-- ESP2 Fan -->
-        <div class="card" id="card-esp2_fan">
-          <h2>ESP2 – Fan</h2>
+        <div class="card" id="card-esp2_light2">
+          <h2>ESP2 – Light 2</h2>
           <div class="device-topic">
-            CMD: home/esp2/fan/cmd &nbsp;·&nbsp;
-            STATE: home/esp2/fan/state
+            CMD: home/esp2/light2/cmd &nbsp;·&nbsp;
+            STATE: home/esp2/light2/state
           </div>
           <div class="circle-wrapper">
-            <div class="circle-button off" id="circle-esp2_fan">
-              <span class="icon">🌀</span>
+            <div class="circle-button off" id="circle-esp2_light2">
+              <span class="icon">💡</span>
             </div>
           </div>
-          <div class="state-text" id="stateText-esp2_fan">Fan is OFF</div>
-          <div class="small" id="sourceText-esp2_fan">Waiting for state…</div>
-          <div class="speed-row">
-            <div class="speed-label" id="speedLabel-esp2_fan">Speed: 0 (Off)</div>
-            <input id="speed-esp2_fan" type="range" class="speed-slider"
-                   min="0" max="3" step="1" value="0" />
-            <div class="speed-ticks">
-              <span>0</span><span>1</span><span>2</span><span>3</span>
-            </div>
-          </div>
+          <div class="state-text" id="stateText-esp2_light2">Light 2 is OFF</div>
+          <div class="small" id="sourceText-esp2_light2">Waiting for state…</div>
         </div>
       </div>
     </div>
 
     <div class="hint">
-      MQTT uses:<br />
-      <code>home/esp1/{light|fan}/{cmd|state}</code>,
-      <code>home/esp2/{light|fan}/{cmd|state}</code>.<br />
-      For fans, UI sends speed <code>0–3</code> on <code>fan/cmd</code> (map this in firmware).<br/>
+      MQTT topics:<br />
+      <code>home/esp1/{light|light2}/{cmd|state}</code>,
+      <code>home/esp2/{light|light2}/{cmd|state}</code>.<br/>
       HTTP fallback uses:<br />
-      <code>/api/set?node=1|2&amp;light=0|1&amp;fanSpeed=0–3</code><br />
+      <code>/api/set?node=1|2&amp;light=0|1&amp;light2=0|1</code><br />
       States via:<br />
       <code>/api/state</code> on each ESP.
     </div>
@@ -560,37 +471,35 @@
     const DEVICES = {
       esp1_light: {
         id: "esp1_light",
-        label: "ESP1 – Light",
+        label: "ESP1 – Light 1",
         type: "light",
         cmdTopic: "home/esp1/light/cmd",
         stateTopic: "home/esp1/light/state",
         state: "OFF"
       },
-      esp1_fan: {
-        id: "esp1_fan",
-        label: "ESP1 – Fan",
-        type: "fan",
-        cmdTopic: "home/esp1/fan/cmd",
-        stateTopic: "home/esp1/fan/state",
-        state: "OFF",
-        speed: 0
+      esp1_light2: {
+        id: "esp1_light2",
+        label: "ESP1 – Light 2",
+        type: "light",
+        cmdTopic: "home/esp1/light2/cmd",
+        stateTopic: "home/esp1/light2/state",
+        state: "OFF"
       },
       esp2_light: {
         id: "esp2_light",
-        label: "ESP2 – Light",
+        label: "ESP2 – Light 1",
         type: "light",
         cmdTopic: "home/esp2/light/cmd",
         stateTopic: "home/esp2/light/state",
         state: "OFF"
       },
-      esp2_fan: {
-        id: "esp2_fan",
-        label: "ESP2 – Fan",
-        type: "fan",
-        cmdTopic: "home/esp2/fan/cmd",
-        stateTopic: "home/esp2/fan/state",
-        state: "OFF",
-        speed: 0
+      esp2_light2: {
+        id: "esp2_light2",
+        label: "ESP2 – Light 2",
+        type: "light",
+        cmdTopic: "home/esp2/light2/cmd",
+        stateTopic: "home/esp2/light2/state",
+        state: "OFF"
       }
     };
 
@@ -618,31 +527,10 @@
       el.className = "pill " + cls;
     }
 
-    function updateFanSpeedUI(deviceId, speed) {
-      const dev = DEVICES[deviceId];
-      if (!dev || dev.type !== "fan") return;
-      dev.speed = speed;
-
-      const labelEl = document.getElementById("speedLabel-" + deviceId);
-      if (labelEl) {
-        const text = speed === 0 ? "Speed: 0 (Off)" : `Speed: ${speed}`;
-        labelEl.textContent = text;
-      }
-      const sliderEl = document.getElementById("speed-" + deviceId);
-      if (sliderEl && Number(sliderEl.value) !== speed) {
-        sliderEl.value = speed;
-      }
-      const mSliderEl = document.getElementById("mspeed-" + deviceId);
-      if (mSliderEl && Number(mSliderEl.value) !== speed) {
-        mSliderEl.value = speed;
-      }
-    }
-
-    function updateDeviceUI(deviceId, state, source = "", speedValue = null) {
+    function updateDeviceUI(deviceId, state, source = "") {
       const dev = DEVICES[deviceId];
       if (!dev) return;
 
-      // State ON/OFF
       dev.state = (state || "").toString().toUpperCase() === "ON" ? "ON" : "OFF";
 
       const circleBtn = document.getElementById("circle-" + deviceId);
@@ -657,25 +545,17 @@
       }
 
       if (stateEl) {
-        const kind = dev.type === "fan" ? "Fan" : "Light";
-        stateEl.textContent = isOn ? `${kind} is ON` : `${kind} is OFF`;
+        let label = "Light";
+        if (deviceId.endsWith("light2")) label = "Light 2";
+        else label = "Light 1";
+        stateEl.textContent = isOn ? `${label} is ON` : `${label} is OFF`;
       }
 
       if (source && sourceEl) {
         sourceEl.textContent = "Last update from: " + source;
       }
 
-      // Fan speed
-      if (dev.type === "fan") {
-        if (speedValue !== null && !Number.isNaN(Number(speedValue))) {
-          updateFanSpeedUI(deviceId, Number(speedValue));
-        } else {
-          // If no speed info, at least keep slider consistent with ON/OFF
-          if (!isOn) updateFanSpeedUI(deviceId, 0);
-        }
-      }
-
-      // --- Mobile sync ---
+      // Mobile
       const mRound = document.getElementById("mround-" + deviceId);
       const mState = document.getElementById("mstate-" + deviceId);
       if (mRound) {
@@ -686,13 +566,12 @@
       }
     }
 
-    // Initialize UI
-    Object.keys(DEVICES).forEach(id => updateDeviceUI(id, "OFF", "", 0));
+    Object.keys(DEVICES).forEach(id => updateDeviceUI(id, "OFF", ""));
 
     let client = null;
     let currentMode = ""; // "local" or "cloud"
     let subscriptionsDone = false;
-    let apiInfo = null;   // optional /api/info cache
+    let apiInfo = null;
 
     function setupSubscriptions() {
       if (!client || subscriptionsDone) return;
@@ -713,21 +592,8 @@
         const devEntry = Object.values(DEVICES).find(d => d.stateTopic === topic);
         if (devEntry) {
           const source = currentMode === "local" ? "Local MQTT" :
-                        currentMode === "cloud" ? "HiveMQ Cloud" : "Unknown";
-
-          // If fan, firmware can encode speed as "0"–"3"
-          if (devEntry.type === "fan") {
-            let speedGuess = null;
-            if (/^[0-3]$/.test(msg)) {
-              speedGuess = Number(msg);
-              const state = speedGuess === 0 ? "OFF" : "ON";
-              updateDeviceUI(devEntry.id, state, source, speedGuess);
-            } else {
-              updateDeviceUI(devEntry.id, msg, source);
-            }
-          } else {
-            updateDeviceUI(devEntry.id, msg, source);
-          }
+                         currentMode === "cloud" ? "HiveMQ Cloud" : "Unknown";
+          updateDeviceUI(devEntry.id, msg, source);
         }
       });
     }
@@ -856,28 +722,26 @@
       if (!json || typeof json !== "object") return;
 
       const src = `HTTP ${sourceLabel}`;
-      const node        = Number(json.node);
-      const light       = Number(json.light) === 1 ? "ON" : "OFF";
-      const fan         = Number(json.fan) === 1 ? "ON" : "OFF";
-      const fanSpeed    = json.fan_speed !== undefined ? Number(json.fan_speed) : null;
-      const remoteNode  = Number(json.remote_node);
-      const remoteLight = Number(json.remote_light) === 1 ? "ON" : "OFF";
-      const remoteFan   = Number(json.remote_fan) === 1 ? "ON" : "OFF";
-      const remoteFanSp = json.remote_fan_speed !== undefined ? Number(json.remote_fan_speed) : null;
+      const node          = Number(json.node);
+      const light         = Number(json.light)  === 1 ? "ON" : "OFF";
+      const light2        = Number(json.light2) === 1 ? "ON" : "OFF";
+      const remoteNode    = Number(json.remote_node);
+      const remoteLight   = Number(json.remote_light)  === 1 ? "ON" : "OFF";
+      const remoteLight2  = Number(json.remote_light2) === 1 ? "ON" : "OFF";
 
       if (node === 1) {
-        if (DEVICES.esp1_light) updateDeviceUI("esp1_light", light, src);
-        if (DEVICES.esp1_fan)   updateDeviceUI("esp1_fan",   fan,   src, fanSpeed);
+        updateDeviceUI("esp1_light",  light,  src);
+        updateDeviceUI("esp1_light2", light2, src);
         if (remoteNode === 2) {
-          if (DEVICES.esp2_light) updateDeviceUI("esp2_light", remoteLight, src);
-          if (DEVICES.esp2_fan)   updateDeviceUI("esp2_fan",   remoteFan,   src, remoteFanSp);
+          updateDeviceUI("esp2_light",  remoteLight,  src);
+          updateDeviceUI("esp2_light2", remoteLight2, src);
         }
       } else if (node === 2) {
-        if (DEVICES.esp2_light) updateDeviceUI("esp2_light", light, src);
-        if (DEVICES.esp2_fan)   updateDeviceUI("esp2_fan",   fan,   src, fanSpeed);
+        updateDeviceUI("esp2_light",  light,  src);
+        updateDeviceUI("esp2_light2", light2, src);
         if (remoteNode === 1) {
-          if (DEVICES.esp1_light) updateDeviceUI("esp1_light", remoteLight, src);
-          if (DEVICES.esp1_fan)   updateDeviceUI("esp1_fan",   remoteFan,   src, remoteFanSp);
+          updateDeviceUI("esp1_light",  remoteLight,  src);
+          updateDeviceUI("esp1_light2", remoteLight2, src);
         }
       }
     }
@@ -920,9 +784,9 @@
 
     httpFallbackBtn.addEventListener("click", httpFallbackPoll);
 
-    // ====== HTTP COMMANDS ======
+    // ====== HTTP commands for lights ======
     async function sendLightCommand(deviceId, newState) {
-      const [nodeStr, devType] = deviceId.split("_"); // "esp1", "light"
+      const [nodeStr, devType] = deviceId.split("_"); // "esp1", "light" or "light2"
       const nodeNum = nodeStr === "esp1" ? 1 : 2;
 
       let ip = "";
@@ -956,133 +820,29 @@
       }
     }
 
-    async function sendFanSpeed(deviceId, speed) {
-      const [nodeStr] = deviceId.split("_"); // "esp1"
-      const nodeNum = nodeStr === "esp1" ? 1 : 2;
-
-      let ip = "";
-      if (nodeNum === 1) {
-        ip = esp1IpInput.value.trim() || window.location.hostname;
-      } else if (nodeNum === 2) {
-        ip = esp2IpInput.value.trim() || window.location.hostname;
-      }
-
-      if (!ip) {
-        alert("No IP known for " + nodeStr.toUpperCase());
-        return;
-      }
-
-      const url = `http://${ip}/api/set?node=${nodeNum}&fanSpeed=${speed}`;
-      console.log("HTTP SET (fanSpeed) →", url);
-
-      try {
-        const res = await fetch(url, { method: "GET", cache: "no-store" });
-        if (!res.ok) {
-          console.warn("HTTP SET fanSpeed non-OK:", res.status, res.statusText);
-        } else {
-          const json = await res.json();
-          console.log("HTTP SET fanSpeed resp:", json);
-          applyHttpState(json, `ESP${nodeNum}`);
-        }
-      } catch (err) {
-        console.error("HTTP SET fanSpeed error:", err);
-        alert("HTTP fan speed failed for " + nodeStr.toUpperCase());
-      }
-    }
-
     // ====== Button bindings ======
     function bindButtons() {
       Object.values(DEVICES).forEach(dev => {
-        // Round circle on desktop/tablet
         const circle = document.getElementById("circle-" + dev.id);
         if (circle) {
           circle.addEventListener("click", async () => {
-            if (dev.type === "light") {
-              const newState = dev.state === "ON" ? "OFF" : "ON";
-              if (client && client.connected) {
-                client.publish(dev.cmdTopic, newState, { qos: 0, retain: false });
-              } else {
-                await sendLightCommand(dev.id, newState);
-              }
-            } else if (dev.type === "fan") {
-              // Toggle ON/OFF but keep current speed if >0 (default to 1)
-              let speed = dev.speed || 0;
-              if (dev.state === "OFF") {
-                if (speed === 0) speed = 1;
-              } else {
-                speed = 0;
-              }
-
-              if (client && client.connected) {
-                client.publish(dev.cmdTopic, String(speed), { qos: 0, retain: false });
-              } else {
-                await sendFanSpeed(dev.id, speed);
-              }
+            const newState = dev.state === "ON" ? "OFF" : "ON";
+            if (client && client.connected) {
+              client.publish(dev.cmdTopic, newState, { qos: 0, retain: false });
+            } else {
+              await sendLightCommand(dev.id, newState);
             }
           });
         }
 
-        // Desktop fan slider
-        if (dev.type === "fan") {
-          const slider = document.getElementById("speed-" + dev.id);
-          if (slider) {
-            slider.addEventListener("change", async () => {
-              const speed = Number(slider.value);
-              dev.speed = speed;
-              // state ON if speed>0
-              dev.state = speed > 0 ? "ON" : "OFF";
-              updateDeviceUI(dev.id, dev.state, "Local UI", speed);
-
-              if (client && client.connected) {
-                client.publish(dev.cmdTopic, String(speed), { qos: 0, retain: false });
-              } else {
-                await sendFanSpeed(dev.id, speed);
-              }
-            });
-          }
-
-          // Mobile slider
-          const mSlider = document.getElementById("mspeed-" + dev.id);
-          if (mSlider) {
-            mSlider.addEventListener("change", async () => {
-              const speed = Number(mSlider.value);
-              dev.speed = speed;
-              dev.state = speed > 0 ? "ON" : "OFF";
-              updateDeviceUI(dev.id, dev.state, "Local UI", speed);
-
-              if (client && client.connected) {
-                client.publish(dev.cmdTopic, String(speed), { qos: 0, retain: false });
-              } else {
-                await sendFanSpeed(dev.id, speed);
-              }
-            });
-          }
-        }
-
-        // Mobile round button
         const mRound = document.getElementById("mround-" + dev.id);
         if (mRound) {
           mRound.addEventListener("click", async () => {
-            if (dev.type === "light") {
-              const newState = dev.state === "ON" ? "OFF" : "ON";
-              if (client && client.connected) {
-                client.publish(dev.cmdTopic, newState, { qos: 0, retain: false });
-              } else {
-                await sendLightCommand(dev.id, newState);
-              }
-            } else if (dev.type === "fan") {
-              let speed = dev.speed || 0;
-              if (dev.state === "OFF") {
-                if (speed === 0) speed = 1;
-              } else {
-                speed = 0;
-              }
-
-              if (client && client.connected) {
-                client.publish(dev.cmdTopic, String(speed), { qos: 0, retain: false });
-              } else {
-                await sendFanSpeed(dev.id, speed);
-              }
+            const newState = dev.state === "ON" ? "OFF" : "ON";
+            if (client && client.connected) {
+              client.publish(dev.cmdTopic, newState, { qos: 0, retain: false });
+            } else {
+              await sendLightCommand(dev.id, newState);
             }
           });
         }
@@ -1132,7 +892,7 @@
       scenarioBadge.className = "mode-badge " + scenarioClass;
     }
 
-    // ====== initApi: auto-detect host, call /api/info, fill IPs ======
+    // ====== initApi ======
     async function initApi() {
       const host = window.location.hostname || "";
 
