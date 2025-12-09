@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Home Mesh Dashboard</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     body {
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #020617;
       color: #e5e7eb;
       margin: 0;
@@ -16,20 +17,21 @@
       justify-content: center;
     }
     .container {
-      max-width: 900px;
+      max-width: 960px;
       width: 100%;
-      padding: 24px;
+      padding: 24px 16px 32px;
     }
     h1 {
       margin-top: 0;
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       text-align: center;
       margin-bottom: 4px;
+      letter-spacing: 0.03em;
     }
     .mode {
       text-align: center;
       font-size: 0.85rem;
-      opacity: 0.7;
+      opacity: 0.75;
       margin-bottom: 8px;
     }
 
@@ -39,11 +41,13 @@
       margin-bottom: 12px;
     }
     .mode-badge {
-      font-size: 0.8rem;
-      padding: 3px 10px;
+      font-size: 0.78rem;
+      padding: 4px 12px;
       border-radius: 999px;
       border: 1px solid transparent;
       display: inline-block;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
     .mode-badge.router-cloud {
       background: rgba(34,197,94,0.12);
@@ -67,14 +71,15 @@
       gap: 8px;
       margin-bottom: 16px;
       font-size: 0.8rem;
+      flex-wrap: wrap;
     }
     .pill {
       padding: 4px 10px;
       border-radius: 999px;
       display: inline-block;
     }
-    .pill-ok { background: #16a34a22; color: #4ade80; }
-    .pill-bad { background: #b91c1c22; color: #f87171; }
+    .pill-ok   { background: #16a34a22; color: #4ade80; }
+    .pill-bad  { background: #b91c1c22; color: #f87171; }
     .pill-warn { background: #a1620722; color: #facc15; }
 
     .http-row {
@@ -125,74 +130,145 @@
       box-shadow: 0 3px 12px rgba(0,0,0,0.8);
     }
 
+    /* ===== Desktop grid: 2 rows (ESP1, ESP2) x 2 columns (Light, Fan) ===== */
     .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 16px;
     }
+    .grid-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .row-label {
+      font-size: 0.78rem;
+      opacity: 0.65;
+      margin: 2px 4px 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
     .card {
       background: #020617;
-      border-radius: 16px;
-      padding: 16px 20px 20px;
+      border-radius: 18px;
+      padding: 16px 20px 18px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.7);
       text-align: center;
       border: 1px solid #1e293b;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(148,163,184,0.06), transparent 55%);
+      pointer-events: none;
     }
     .card h2 {
       margin: 0 0 4px;
-      font-size: 1.05rem;
+      font-size: 1.0rem;
     }
     .device-topic {
       font-size: 0.7rem;
       opacity: 0.6;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
-    .circle {
+
+    /* Round touch button in center */
+    .circle-wrapper {
+      display: flex;
+      justify-content: center;
+      margin: 8px 0 6px;
+    }
+    .circle-button {
       width: 70px;
       height: 70px;
-      border-radius: 999px;
-      margin: 8px auto 10px;
+      border-radius: 50%;
+      border: 2px solid #1f2937;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
       box-shadow: 0 0 30px rgba(15,23,42,1);
-      transition: background 0.18s ease, box-shadow 0.18s ease;
+      background: radial-gradient(circle at 30% 20%, #111827, #020617);
+      transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease, border-color 0.12s ease;
     }
-    .circle.on {
+    .circle-button .icon {
+      font-size: 1.6rem;
+    }
+    .circle-button.on {
       background: radial-gradient(circle at 30% 20%, #facc15, #f97316);
       box-shadow: 0 0 45px rgba(250,204,21,0.9);
+      border-color: rgba(250,204,21,0.9);
+      transform: translateY(-1px);
+      color: #111827;
     }
-    .circle.off {
-      background: radial-gradient(circle at 30% 20%, #111827, #020617);
+    .circle-button.off {
+      color: #e5e7eb;
     }
+
     .state-text {
-      font-size: 0.9rem;
-      margin-bottom: 4px;
+      font-size: 0.88rem;
+      margin-bottom: 2px;
     }
     .small {
       font-size: 0.75rem;
       opacity: 0.6;
     }
-    .btn {
-      border: none;
-      border-radius: 999px;
-      padding: 8px 20px;
-      font-size: 0.9rem;
-      cursor: pointer;
+
+    /* Fan speed regulator */
+    .speed-row {
       margin-top: 8px;
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+      font-size: 0.75rem;
     }
-    .btn-on {
-      background: linear-gradient(135deg, #facc15, #f97316);
-      color: #111827;
-      box-shadow: 0 10px 25px rgba(248,250,252,0.15);
+    .speed-label {
+      opacity: 0.7;
     }
-    .btn-off {
-      background: #111827;
-      color: #e5e7eb;
-      box-shadow: 0 10px 25px rgba(15,23,42,0.9);
+    .speed-slider {
+      width: 100%;
+      max-width: 160px;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: #1f2937;
+      outline: none;
     }
-    .btn:active {
-      transform: scale(0.97);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+    .speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #facc15;
+      border: 2px solid #111827;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(250,204,21,0.7);
     }
+    .speed-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #facc15;
+      border: 2px solid #111827;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(250,204,21,0.7);
+    }
+    .speed-ticks {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 160px;
+      font-size: 0.7rem;
+      opacity: 0.6;
+    }
+
     .hint {
       text-align: center;
       font-size: 0.75rem;
@@ -205,14 +281,98 @@
       border-radius: 999px;
       border: 1px solid #1e293b;
     }
+
+    /* ===== Mobile Quick Control “page” ===== */
+    .mobile-panel {
+      display: none; /* shown only on small screens */
+      margin-bottom: 18px;
+    }
+    .mobile-panel-title {
+      font-size: 0.95rem;
+      text-align: center;
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+    .mobile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .mobile-card {
+      background: #020617;
+      border-radius: 18px;
+      padding: 10px 10px 12px;
+      border: 1px solid #1e293b;
+      box-shadow: 0 7px 24px rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .mobile-label {
+      font-size: 0.78rem;
+      opacity: 0.75;
+    }
+    .mobile-round {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #111827;
+      background: radial-gradient(circle at 30% 20%, #111827, #020617);
+      cursor: pointer;
+      transition: background 0.16s ease, box-shadow 0.16s ease, transform 0.08s ease, border-color 0.16s ease;
+    }
+    .mobile-round .icon {
+      font-size: 1.4rem;
+    }
+    .mobile-round.on {
+      background: radial-gradient(circle at 30% 20%, #facc15, #f97316);
+      color: #111827;
+      border-color: rgba(250,204,21,0.9);
+      box-shadow: 0 0 35px rgba(250,204,21,0.7);
+      transform: translateY(-1px);
+    }
+    .mobile-state {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .mobile-speed-slider {
+      width: 100%;
+      max-width: 120px;
+    }
+
+    /* ===== Responsive rules ===== */
+    @media (max-width: 768px) {
+      .grid-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .mobile-panel {
+        display: block;
+      }
+      .grid {
+        display: none;
+      }
+      .container {
+        padding-top: 18px;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Smart Home Mesh – ESP1 & ESP2</h1>
+    <h1>Smart Home Mesh – ESP1 &amp; ESP2</h1>
     <div id="modeLabel" class="mode">Connecting…</div>
 
-    <!-- New: Scenario mode badge -->
+    <!-- Mode badge -->
     <div class="mode-badge-wrapper">
       <span id="scenarioBadge" class="mode-badge router-cloud">
         Mode: Detecting…
@@ -249,57 +409,137 @@
       </button>
     </div>
 
+    <!-- ===== Mobile quick control (small screens only) ===== -->
+    <div class="mobile-panel">
+      <div class="mobile-panel-title">Quick Control (Mobile)</div>
+      <div class="mobile-grid">
+        <!-- ESP1 Light -->
+        <div class="mobile-card">
+          <div class="mobile-label">ESP1 Light</div>
+          <div class="mobile-round" id="mround-esp1_light">
+            <span class="icon">💡</span>
+          </div>
+          <div class="mobile-state" id="mstate-esp1_light">OFF</div>
+        </div>
+        <!-- ESP1 Fan -->
+        <div class="mobile-card">
+          <div class="mobile-label">ESP1 Fan</div>
+          <div class="mobile-round" id="mround-esp1_fan">
+            <span class="icon">🌀</span>
+          </div>
+          <div class="mobile-state" id="mstate-esp1_fan">OFF</div>
+          <input id="mspeed-esp1_fan" type="range" class="speed-slider mobile-speed-slider"
+                 min="0" max="3" step="1" value="0" />
+        </div>
+        <!-- ESP2 Light -->
+        <div class="mobile-card">
+          <div class="mobile-label">ESP2 Light</div>
+          <div class="mobile-round" id="mround-esp2_light">
+            <span class="icon">💡</span>
+          </div>
+          <div class="mobile-state" id="mstate-esp2_light">OFF</div>
+        </div>
+        <!-- ESP2 Fan -->
+        <div class="mobile-card">
+          <div class="mobile-label">ESP2 Fan</div>
+          <div class="mobile-round" id="mround-esp2_fan">
+            <span class="icon">🌀</span>
+          </div>
+          <div class="mobile-state" id="mstate-esp2_fan">OFF</div>
+          <input id="mspeed-esp2_fan" type="range" class="speed-slider mobile-speed-slider"
+                 min="0" max="3" step="1" value="0" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Desktop / tablet detailed grid (2 rows x 2 columns) ===== -->
     <div class="grid">
-      <!-- ESP1 Light -->
-      <div class="card" id="card-esp1_light">
-        <h2>ESP1 – Light</h2>
-        <div class="device-topic">
-          CMD: home/esp1/light/cmd &nbsp;·&nbsp;
-          STATE: home/esp1/light/state
+      <!-- Row for ESP1 -->
+      <div class="row-label">ESP1</div>
+      <div class="grid-row">
+        <!-- ESP1 Light -->
+        <div class="card" id="card-esp1_light">
+          <h2>ESP1 – Light</h2>
+          <div class="device-topic">
+            CMD: home/esp1/light/cmd &nbsp;·&nbsp;
+            STATE: home/esp1/light/state
+          </div>
+          <div class="circle-wrapper">
+            <div class="circle-button off" id="circle-esp1_light">
+              <span class="icon">💡</span>
+            </div>
+          </div>
+          <div class="state-text" id="stateText-esp1_light">Light is OFF</div>
+          <div class="small" id="sourceText-esp1_light">Waiting for state…</div>
         </div>
-        <div class="circle off" id="circle-esp1_light"></div>
-        <div class="state-text" id="stateText-esp1_light">Unknown</div>
-        <div class="small" id="sourceText-esp1_light">Waiting for state…</div>
-        <button class="btn btn-off" id="btn-esp1_light">Turn ON</button>
+
+        <!-- ESP1 Fan -->
+        <div class="card" id="card-esp1_fan">
+          <h2>ESP1 – Fan</h2>
+          <div class="device-topic">
+            CMD: home/esp1/fan/cmd &nbsp;·&nbsp;
+            STATE: home/esp1/fan/state
+          </div>
+          <div class="circle-wrapper">
+            <div class="circle-button off" id="circle-esp1_fan">
+              <span class="icon">🌀</span>
+            </div>
+          </div>
+          <div class="state-text" id="stateText-esp1_fan">Fan is OFF</div>
+          <div class="small" id="sourceText-esp1_fan">Waiting for state…</div>
+          <div class="speed-row">
+            <div class="speed-label" id="speedLabel-esp1_fan">Speed: 0 (Off)</div>
+            <input id="speed-esp1_fan" type="range" class="speed-slider"
+                   min="0" max="3" step="1" value="0" />
+            <div class="speed-ticks">
+              <span>0</span><span>1</span><span>2</span><span>3</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- ESP1 Fan -->
-      <div class="card" id="card-esp1_fan">
-        <h2>ESP1 – Fan</h2>
-        <div class="device-topic">
-          CMD: home/esp1/fan/cmd &nbsp;·&nbsp;
-          STATE: home/esp1/fan/state
+      <!-- Row for ESP2 -->
+      <div class="row-label" style="margin-top:10px;">ESP2</div>
+      <div class="grid-row">
+        <!-- ESP2 Light -->
+        <div class="card" id="card-esp2_light">
+          <h2>ESP2 – Light</h2>
+          <div class="device-topic">
+            CMD: home/esp2/light/cmd &nbsp;·&nbsp;
+            STATE: home/esp2/light/state
+          </div>
+          <div class="circle-wrapper">
+            <div class="circle-button off" id="circle-esp2_light">
+              <span class="icon">💡</span>
+            </div>
+          </div>
+          <div class="state-text" id="stateText-esp2_light">Light is OFF</div>
+          <div class="small" id="sourceText-esp2_light">Waiting for state…</div>
         </div>
-        <div class="circle off" id="circle-esp1_fan"></div>
-        <div class="state-text" id="stateText-esp1_fan">Unknown</div>
-        <div class="small" id="sourceText-esp1_fan">Waiting for state…</div>
-        <button class="btn btn-off" id="btn-esp1_fan">Turn ON</button>
-      </div>
 
-      <!-- ESP2 Light -->
-      <div class="card" id="card-esp2_light">
-        <h2>ESP2 – Light</h2>
-        <div class="device-topic">
-          CMD: home/esp2/light/cmd &nbsp;·&nbsp;
-          STATE: home/esp2/light/state
+        <!-- ESP2 Fan -->
+        <div class="card" id="card-esp2_fan">
+          <h2>ESP2 – Fan</h2>
+          <div class="device-topic">
+            CMD: home/esp2/fan/cmd &nbsp;·&nbsp;
+            STATE: home/esp2/fan/state
+          </div>
+          <div class="circle-wrapper">
+            <div class="circle-button off" id="circle-esp2_fan">
+              <span class="icon">🌀</span>
+            </div>
+          </div>
+          <div class="state-text" id="stateText-esp2_fan">Fan is OFF</div>
+          <div class="small" id="sourceText-esp2_fan">Waiting for state…</div>
+          <div class="speed-row">
+            <div class="speed-label" id="speedLabel-esp2_fan">Speed: 0 (Off)</div>
+            <input id="speed-esp2_fan" type="range" class="speed-slider"
+                   min="0" max="3" step="1" value="0" />
+            <div class="speed-ticks">
+              <span>0</span><span>1</span><span>2</span><span>3</span>
+            </div>
+          </div>
         </div>
-        <div class="circle off" id="circle-esp2_light"></div>
-        <div class="state-text" id="stateText-esp2_light">Unknown</div>
-        <div class="small" id="sourceText-esp2_light">Waiting for state…</div>
-        <button class="btn btn-off" id="btn-esp2_light">Turn ON</button>
-      </div>
-
-      <!-- ESP2 Fan -->
-      <div class="card" id="card-esp2_fan">
-        <h2>ESP2 – Fan</h2>
-        <div class="device-topic">
-          CMD: home/esp2/fan/cmd &nbsp;·&nbsp;
-          STATE: home/esp2/fan/state
-        </div>
-        <div class="circle off" id="circle-esp2_fan"></div>
-        <div class="state-text" id="stateText-esp2_fan">Unknown</div>
-        <div class="small" id="sourceText-esp2_fan">Waiting for state…</div>
-        <button class="btn btn-off" id="btn-esp2_fan">Turn ON</button>
       </div>
     </div>
 
@@ -307,468 +547,626 @@
       MQTT uses:<br />
       <code>home/esp1/{light|fan}/{cmd|state}</code>,
       <code>home/esp2/{light|fan}/{cmd|state}</code>.<br />
-      When MQTT is unavailable, the same buttons fall back to HTTP:<br />
-      <code>/api/set?node=1|2&amp;light=0|1&amp;fan=0|1</code><br />
-      And you can poll states via:<br />
-      <code>/api/state</code> on each ESP (AP mesh or router mode).
+      For fans, UI sends speed <code>0–3</code> on <code>fan/cmd</code> (map this in firmware).<br/>
+      HTTP fallback uses:<br />
+      <code>/api/set?node=1|2&amp;light=0|1&amp;fanSpeed=0–3</code><br />
+      States via:<br />
+      <code>/api/state</code> on each ESP.
     </div>
   </div>
 
   <script>
-// ====== CONFIG (topics & MQTT) ======
-const DEVICES = {
-  esp1_light: {
-    id: "esp1_light",
-    label: "ESP1 – Light",
-    type: "light",
-    cmdTopic: "home/esp1/light/cmd",
-    stateTopic: "home/esp1/light/state",
-    state: "OFF"
-  },
-  esp1_fan: {
-    id: "esp1_fan",
-    label: "ESP1 – Fan",
-    type: "fan",
-    cmdTopic: "home/esp1/fan/cmd",
-    stateTopic: "home/esp1/fan/state",
-    state: "OFF"
-  },
-  esp2_light: {
-    id: "esp2_light",
-    label: "ESP2 – Light",
-    type: "light",
-    cmdTopic: "home/esp2/light/cmd",
-    stateTopic: "home/esp2/light/state",
-    state: "OFF"
-  },
-  esp2_fan: {
-    id: "esp2_fan",
-    label: "ESP2 – Fan",
-    type: "fan",
-    cmdTopic: "home/esp2/fan/cmd",
-    stateTopic: "home/esp2/fan/state",
-    state: "OFF"
-  }
-};
+    // ====== CONFIG (topics & MQTT) ======
+    const DEVICES = {
+      esp1_light: {
+        id: "esp1_light",
+        label: "ESP1 – Light",
+        type: "light",
+        cmdTopic: "home/esp1/light/cmd",
+        stateTopic: "home/esp1/light/state",
+        state: "OFF"
+      },
+      esp1_fan: {
+        id: "esp1_fan",
+        label: "ESP1 – Fan",
+        type: "fan",
+        cmdTopic: "home/esp1/fan/cmd",
+        stateTopic: "home/esp1/fan/state",
+        state: "OFF",
+        speed: 0
+      },
+      esp2_light: {
+        id: "esp2_light",
+        label: "ESP2 – Light",
+        type: "light",
+        cmdTopic: "home/esp2/light/cmd",
+        stateTopic: "home/esp2/light/state",
+        state: "OFF"
+      },
+      esp2_fan: {
+        id: "esp2_fan",
+        label: "ESP2 – Fan",
+        type: "fan",
+        cmdTopic: "home/esp2/fan/cmd",
+        stateTopic: "home/esp2/fan/state",
+        state: "OFF",
+        speed: 0
+      }
+    };
 
-const LOCAL_URL = "ws://192.168.0.144:9001"; // optional local broker
-const CLOUD_URL = "wss://855677dcf06a47379e9bb069a058ee3a.s1.eu.hivemq.cloud:8884/mqtt";
-const CLOUD_USER = "SmartLife";
-const CLOUD_PASS = "Metrouni2025";
+    const LOCAL_URL = "ws://192.168.0.144:9001"; // optional local broker
+    const CLOUD_URL = "wss://855677dcf06a47379e9bb069a058ee3a.s1.eu.hivemq.cloud:8884/mqtt";
+    const CLOUD_USER = "SmartLife";
+    const CLOUD_PASS = "Metrouni2025";
 
-const STATE_TOPICS = Object.values(DEVICES).map(d => d.stateTopic);
+    const STATE_TOPICS = Object.values(DEVICES).map(d => d.stateTopic);
 
-const isHttps = window.location.protocol === "https:";
-const canUseLocal = !isHttps; // avoid ws:// from https page
+    const isHttps = window.location.protocol === "https:";
+    const canUseLocal = !isHttps; // avoid ws:// from https page
 
-// ====== UI ELEMENTS ======
-const modeLabel       = document.getElementById("modeLabel");
-const localStatus     = document.getElementById("localStatus");
-const cloudStatus     = document.getElementById("cloudStatus");
-const esp1IpInput     = document.getElementById("esp1Ip");
-const esp2IpInput     = document.getElementById("esp2Ip");
-const httpFallbackBtn = document.getElementById("httpFallbackBtn");
-const scenarioBadge   = document.getElementById("scenarioBadge");
+    // ====== UI ELEMENTS ======
+    const modeLabel       = document.getElementById("modeLabel");
+    const localStatus     = document.getElementById("localStatus");
+    const cloudStatus     = document.getElementById("cloudStatus");
+    const esp1IpInput     = document.getElementById("esp1Ip");
+    const esp2IpInput     = document.getElementById("esp2Ip");
+    const httpFallbackBtn = document.getElementById("httpFallbackBtn");
+    const scenarioBadge   = document.getElementById("scenarioBadge");
 
-function setPill(el, text, cls) {
-  el.textContent = text;
-  el.className = "pill " + cls;
-}
-
-function updateDeviceUI(deviceId, state, source = "") {
-  const dev = DEVICES[deviceId];
-  if (!dev) return;
-
-  dev.state = (state || "").toUpperCase() === "ON" ? "ON" : "OFF";
-
-  const circle   = document.getElementById("circle-" + deviceId);
-  const stateEl  = document.getElementById("stateText-" + deviceId);
-  const sourceEl = document.getElementById("sourceText-" + deviceId);
-  const btn      = document.getElementById("btn-" + deviceId);
-
-  const isOn = dev.state === "ON";
-
-  circle.classList.toggle("on", isOn);
-  circle.classList.toggle("off", !isOn);
-
-  const kind = dev.type === "fan" ? "Fan" : "Light";
-  stateEl.textContent = isOn ? `${kind} is ON` : `${kind} is OFF`;
-  btn.textContent = isOn ? "Turn OFF" : "Turn ON";
-
-  btn.classList.toggle("btn-on", isOn);
-  btn.classList.toggle("btn-off", !isOn);
-
-  if (source) {
-    sourceEl.textContent = "Last update from: " + source;
-  }
-}
-
-// Initialize UI
-Object.keys(DEVICES).forEach(id => updateDeviceUI(id, "OFF"));
-
-let client = null;
-let currentMode = ""; // "local" or "cloud"
-let subscriptionsDone = false;
-let apiInfo = null;   // optional /api/info cache
-
-function setupSubscriptions() {
-  if (!client || subscriptionsDone) return;
-  subscriptionsDone = true;
-
-  client.subscribe(STATE_TOPICS, (err, granted) => {
-    if (err) {
-      console.error("Subscribe error:", err);
-    } else {
-      console.log("Subscribed to:", granted.map(g => g.topic).join(", "));
-    }
-  });
-
-  client.on("message", (topic, payload) => {
-    const msg = payload.toString().trim();
-    console.log("MQTT:", topic, msg);
-
-    const devEntry = Object.values(DEVICES).find(d => d.stateTopic === topic);
-    if (devEntry) {
-      const source = currentMode === "local" ? "Local MQTT" :
-                     currentMode === "cloud" ? "HiveMQ Cloud" : "Unknown";
-      updateDeviceUI(devEntry.id, msg, source);
-    }
-  });
-}
-
-function retryConnection() {
-  setTimeout(() => {
-    modeLabel.textContent = "Retrying connection…";
-    startConnectionFlow();
-  }, 10000);
-}
-
-function startConnectionFlow() {
-  if (canUseLocal) {
-    connectLocalFirst();
-  } else {
-    setPill(localStatus, "Local: disabled over HTTPS", "pill-bad");
-    modeLabel.textContent = "HTTPS detected – using Cloud mode";
-    connectCloudFallback();
-  }
-}
-
-function connectLocalFirst() {
-  modeLabel.textContent = "Trying local broker…";
-  setPill(localStatus, "Local: connecting…", "pill-warn");
-
-  const localClient = mqtt.connect(LOCAL_URL, {
-    reconnectPeriod: 0,
-    connectTimeout: 3000
-  });
-
-  let resolved = false;
-
-  localClient.on("connect", () => {
-    console.log("Connected to local broker");
-    resolved = true;
-    currentMode = "local";
-    client = localClient;
-
-    modeLabel.textContent = "Connected (Local MQTT)";
-    setPill(localStatus, "Local: connected", "pill-ok");
-    setPill(cloudStatus, "Cloud: standby", "pill-warn");
-
-    setupSubscriptions();
-  });
-
-  localClient.on("error", (err) => {
-    console.error("Local MQTT error:", err && err.message);
-    localClient.end(true);
-    if (!resolved) {
-      resolved = true;
-      setPill(localStatus, "Local: failed", "pill-bad");
-      connectCloudFallback();
-    }
-  });
-
-  localClient.on("close", () => {
-    console.log("Local MQTT closed");
-    if (!resolved) {
-      resolved = true;
-      setPill(localStatus, "Local: closed", "pill-bad");
-      connectCloudFallback();
-    } else if (currentMode === "local") {
-      setPill(localStatus, "Local: disconnected", "pill-bad");
-      modeLabel.textContent = "Local lost, trying Cloud…";
-      connectCloudFallback();
-    }
-  });
-}
-
-function connectCloudFallback() {
-  modeLabel.textContent = "Trying HiveMQ Cloud…";
-  setPill(cloudStatus, "Cloud: connecting…", "pill-warn");
-
-  const cloudClient = mqtt.connect(CLOUD_URL, {
-    username: CLOUD_USER,
-    password: CLOUD_PASS,
-    reconnectPeriod: 0,
-    connectTimeout: 4000
-  });
-
-  let resolved = false;
-
-  cloudClient.on("connect", () => {
-    console.log("Connected to HiveMQ Cloud");
-    resolved = true;
-    currentMode = "cloud";
-    client = cloudClient;
-
-    modeLabel.textContent = "Connected (Cloud MQTT)";
-    setPill(cloudStatus, "Cloud: connected", "pill-ok");
-    if (localStatus.textContent.includes("connecting")) {
-      setPill(localStatus, "Local: unavailable", "pill-bad");
+    function setPill(el, text, cls) {
+      el.textContent = text;
+      el.className = "pill " + cls;
     }
 
-    setupSubscriptions();
-  });
+    function updateFanSpeedUI(deviceId, speed) {
+      const dev = DEVICES[deviceId];
+      if (!dev || dev.type !== "fan") return;
+      dev.speed = speed;
 
-  cloudClient.on("error", (err) => {
-    console.error("Cloud MQTT error:", err && err.message);
-    cloudClient.end(true);
-    if (!resolved) {
-      resolved = true;
-      setPill(cloudStatus, "Cloud: failed", "pill-bad");
-      modeLabel.textContent = "No MQTT broker available – HTTP only";
-      retryConnection();
+      const labelEl = document.getElementById("speedLabel-" + deviceId);
+      if (labelEl) {
+        const text = speed === 0 ? "Speed: 0 (Off)" : `Speed: ${speed}`;
+        labelEl.textContent = text;
+      }
+      const sliderEl = document.getElementById("speed-" + deviceId);
+      if (sliderEl && Number(sliderEl.value) !== speed) {
+        sliderEl.value = speed;
+      }
+      const mSliderEl = document.getElementById("mspeed-" + deviceId);
+      if (mSliderEl && Number(mSliderEl.value) !== speed) {
+        mSliderEl.value = speed;
+      }
     }
-  });
 
-  cloudClient.on("close", () => {
-    console.log("Cloud MQTT closed");
-    if (!resolved) {
-      resolved = true;
-      setPill(cloudStatus, "Cloud: closed", "pill-bad");
-      modeLabel.textContent = "No MQTT broker available – HTTP only";
-      retryConnection();
-    } else if (currentMode === "cloud") {
-      setPill(cloudStatus, "Cloud: disconnected", "pill-bad");
-      modeLabel.textContent = "Disconnected from Cloud – HTTP only";
-      retryConnection();
+    function updateDeviceUI(deviceId, state, source = "", speedValue = null) {
+      const dev = DEVICES[deviceId];
+      if (!dev) return;
+
+      // State ON/OFF
+      dev.state = (state || "").toString().toUpperCase() === "ON" ? "ON" : "OFF";
+
+      const circleBtn = document.getElementById("circle-" + deviceId);
+      const stateEl   = document.getElementById("stateText-" + deviceId);
+      const sourceEl  = document.getElementById("sourceText-" + deviceId);
+
+      const isOn = dev.state === "ON";
+
+      if (circleBtn) {
+        circleBtn.classList.toggle("on", isOn);
+        circleBtn.classList.toggle("off", !isOn);
+      }
+
+      if (stateEl) {
+        const kind = dev.type === "fan" ? "Fan" : "Light";
+        stateEl.textContent = isOn ? `${kind} is ON` : `${kind} is OFF`;
+      }
+
+      if (source && sourceEl) {
+        sourceEl.textContent = "Last update from: " + source;
+      }
+
+      // Fan speed
+      if (dev.type === "fan") {
+        if (speedValue !== null && !Number.isNaN(Number(speedValue))) {
+          updateFanSpeedUI(deviceId, Number(speedValue));
+        } else {
+          // If no speed info, at least keep slider consistent with ON/OFF
+          if (!isOn) updateFanSpeedUI(deviceId, 0);
+        }
+      }
+
+      // --- Mobile sync ---
+      const mRound = document.getElementById("mround-" + deviceId);
+      const mState = document.getElementById("mstate-" + deviceId);
+      if (mRound) {
+        mRound.classList.toggle("on", isOn);
+      }
+      if (mState) {
+        mState.textContent = isOn ? "ON" : "OFF";
+      }
     }
-  });
-}
 
-// ====== HTTP STATE (/api/state) ======
-function applyHttpState(json, sourceLabel) {
-  if (!json || typeof json !== "object") return;
+    // Initialize UI
+    Object.keys(DEVICES).forEach(id => updateDeviceUI(id, "OFF", "", 0));
 
-  const src = `HTTP ${sourceLabel}`;
-  const node        = Number(json.node);
-  const light       = Number(json.light) === 1 ? "ON" : "OFF";
-  const fan         = Number(json.fan) === 1 ? "ON" : "OFF";
-  const remoteNode  = Number(json.remote_node);
-  const remoteLight = Number(json.remote_light) === 1 ? "ON" : "OFF";
-  const remoteFan   = Number(json.remote_fan) === 1 ? "ON" : "OFF";
+    let client = null;
+    let currentMode = ""; // "local" or "cloud"
+    let subscriptionsDone = false;
+    let apiInfo = null;   // optional /api/info cache
 
-  if (node === 1) {
-    if (DEVICES.esp1_light) updateDeviceUI("esp1_light", light, src);
-    if (DEVICES.esp1_fan)   updateDeviceUI("esp1_fan",   fan,   src);
-    if (remoteNode === 2) {
-      if (DEVICES.esp2_light) updateDeviceUI("esp2_light", remoteLight, src);
-      if (DEVICES.esp2_fan)   updateDeviceUI("esp2_fan",   remoteFan,   src);
+    function setupSubscriptions() {
+      if (!client || subscriptionsDone) return;
+      subscriptionsDone = true;
+
+      client.subscribe(STATE_TOPICS, (err, granted) => {
+        if (err) {
+          console.error("Subscribe error:", err);
+        } else {
+          console.log("Subscribed to:", granted.map(g => g.topic).join(", "));
+        }
+      });
+
+      client.on("message", (topic, payload) => {
+        const msg = payload.toString().trim();
+        console.log("MQTT:", topic, msg);
+
+        const devEntry = Object.values(DEVICES).find(d => d.stateTopic === topic);
+        if (devEntry) {
+          const source = currentMode === "local" ? "Local MQTT" :
+                        currentMode === "cloud" ? "HiveMQ Cloud" : "Unknown";
+
+          // If fan, firmware can encode speed as "0"–"3"
+          if (devEntry.type === "fan") {
+            let speedGuess = null;
+            if (/^[0-3]$/.test(msg)) {
+              speedGuess = Number(msg);
+              const state = speedGuess === 0 ? "OFF" : "ON";
+              updateDeviceUI(devEntry.id, state, source, speedGuess);
+            } else {
+              updateDeviceUI(devEntry.id, msg, source);
+            }
+          } else {
+            updateDeviceUI(devEntry.id, msg, source);
+          }
+        }
+      });
     }
-  } else if (node === 2) {
-    if (DEVICES.esp2_light) updateDeviceUI("esp2_light", light, src);
-    if (DEVICES.esp2_fan)   updateDeviceUI("esp2_fan",   fan,   src);
-    if (remoteNode === 1) {
-      if (DEVICES.esp1_light) updateDeviceUI("esp1_light", remoteLight, src);
-      if (DEVICES.esp1_fan)   updateDeviceUI("esp1_fan",   remoteFan,   src);
+
+    function retryConnection() {
+      setTimeout(() => {
+        modeLabel.textContent = "Retrying connection…";
+        startConnectionFlow();
+      }, 10000);
     }
-  }
-}
 
-async function pollNode(ip, label) {
-  if (!ip) return;
-  const url = `http://${ip}/api/state`;
-  console.log("HTTP polling:", url);
-
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-      console.warn("HTTP non-OK:", res.status, res.statusText);
-      return;
+    function startConnectionFlow() {
+      if (canUseLocal) {
+        connectLocalFirst();
+      } else {
+        setPill(localStatus, "Local: disabled over HTTPS", "pill-bad");
+        modeLabel.textContent = "HTTPS detected – using Cloud mode";
+        connectCloudFallback();
+      }
     }
-    const json = await res.json();
-    console.log("HTTP state from", label, json);
-    applyHttpState(json, label);
-  } catch (err) {
-    console.error("HTTP error for", ip, err);
-  }
-}
 
-async function httpFallbackPoll() {
-  const ip1 = esp1IpInput.value.trim();
-  const ip2 = esp2IpInput.value.trim();
+    function connectLocalFirst() {
+      modeLabel.textContent = "Trying local broker…";
+      setPill(localStatus, "Local: connecting…", "pill-warn");
 
-  if (!ip1 && !ip2) {
-    alert("No ESP IPs known. (initApi should fill these automatically.)");
-    return;
-  }
+      const localClient = mqtt.connect(LOCAL_URL, {
+        reconnectPeriod: 0,
+        connectTimeout: 3000
+      });
 
-  modeLabel.textContent = "HTTP fallback: polling /api/state…";
-  await Promise.all([
-    pollNode(ip1, "ESP1"),
-    pollNode(ip2, "ESP2")
-  ]);
-  modeLabel.textContent = "HTTP fallback: last poll completed";
-}
+      let resolved = false;
 
-httpFallbackBtn.addEventListener("click", httpFallbackPoll);
+      localClient.on("connect", () => {
+        console.log("Connected to local broker");
+        resolved = true;
+        currentMode = "local";
+        client = localClient;
 
-// ====== HTTP COMMAND FALLBACK (GET /api/set) ======
-async function sendHttpCommand(deviceId, newState) {
-  const [nodeStr, devType] = deviceId.split("_"); // "esp1", "light"
-  const nodeNum = nodeStr === "esp1" ? 1 : 2;
+        modeLabel.textContent = "Connected (Local MQTT)";
+        setPill(localStatus, "Local: connected", "pill-ok");
+        setPill(cloudStatus, "Cloud: standby", "pill-warn");
 
-  // Choose IP per node
-  let ip = "";
-  if (nodeNum === 1) {
-    ip = esp1IpInput.value.trim() || window.location.hostname;
-  } else if (nodeNum === 2) {
-    ip = esp2IpInput.value.trim() || window.location.hostname;
-  }
+        setupSubscriptions();
+      });
 
-  if (!ip) {
-    alert("No IP known for " + nodeStr.toUpperCase());
-    return;
-  }
+      localClient.on("error", (err) => {
+        console.error("Local MQTT error:", err && err.message);
+        localClient.end(true);
+        if (!resolved) {
+          resolved = true;
+          setPill(localStatus, "Local: failed", "pill-bad");
+          connectCloudFallback();
+        }
+      });
 
-  const val = newState === "ON" ? 1 : 0;
-  const url = `http://${ip}/api/set?node=${nodeNum}&${devType}=${val}`;
-
-  console.log("HTTP SET →", url);
-  try {
-    const res = await fetch(url, { method: "GET", cache: "no-store" });
-    if (!res.ok) {
-      console.warn("HTTP SET non-OK:", res.status, res.statusText);
-    } else {
-      const json = await res.json();
-      console.log("HTTP SET resp:", json);
-      applyHttpState(json, `ESP${nodeNum}`);
+      localClient.on("close", () => {
+        console.log("Local MQTT closed");
+        if (!resolved) {
+          resolved = true;
+          setPill(localStatus, "Local: closed", "pill-bad");
+          connectCloudFallback();
+        } else if (currentMode === "local") {
+          setPill(localStatus, "Local: disconnected", "pill-bad");
+          modeLabel.textContent = "Local lost, trying Cloud…";
+          connectCloudFallback();
+        }
+      });
     }
-  } catch (err) {
-    console.error("HTTP SET error:", err);
-    alert("HTTP command failed for " + nodeStr.toUpperCase());
-  }
-}
 
-// ====== Buttons (MQTT primary, HTTP fallback) ======
-function bindButtons() {
-  Object.values(DEVICES).forEach(dev => {
-    const btn = document.getElementById("btn-" + dev.id);
-    btn.addEventListener("click", async () => {
-      const newState = dev.state === "ON" ? "OFF" : "ON";
+    function connectCloudFallback() {
+      modeLabel.textContent = "Trying HiveMQ Cloud…";
+      setPill(cloudStatus, "Cloud: connecting…", "pill-warn");
 
-      // Prefer MQTT if connected
-      if (client && client.connected) {
-        client.publish(dev.cmdTopic, newState, { qos: 0, retain: false });
+      const cloudClient = mqtt.connect(CLOUD_URL, {
+        username: CLOUD_USER,
+        password: CLOUD_PASS,
+        reconnectPeriod: 0,
+        connectTimeout: 4000
+      });
+
+      let resolved = false;
+
+      cloudClient.on("connect", () => {
+        console.log("Connected to HiveMQ Cloud");
+        resolved = true;
+        currentMode = "cloud";
+        client = cloudClient;
+
+        modeLabel.textContent = "Connected (Cloud MQTT)";
+        setPill(cloudStatus, "Cloud: connected", "pill-ok");
+        if (localStatus.textContent.includes("connecting")) {
+          setPill(localStatus, "Local: unavailable", "pill-bad");
+        }
+
+        setupSubscriptions();
+      });
+
+      cloudClient.on("error", (err) => {
+        console.error("Cloud MQTT error:", err && err.message);
+        cloudClient.end(true);
+        if (!resolved) {
+          resolved = true;
+          setPill(cloudStatus, "Cloud: failed", "pill-bad");
+          modeLabel.textContent = "No MQTT broker available – HTTP only";
+          retryConnection();
+        }
+      });
+
+      cloudClient.on("close", () => {
+        console.log("Cloud MQTT closed");
+        if (!resolved) {
+          resolved = true;
+          setPill(cloudStatus, "Cloud: closed", "pill-bad");
+          modeLabel.textContent = "No MQTT broker available – HTTP only";
+          retryConnection();
+        } else if (currentMode === "cloud") {
+          setPill(cloudStatus, "Cloud: disconnected", "pill-bad");
+          modeLabel.textContent = "Disconnected from Cloud – HTTP only";
+          retryConnection();
+        }
+      });
+    }
+
+    // ====== HTTP STATE (/api/state) ======
+    function applyHttpState(json, sourceLabel) {
+      if (!json || typeof json !== "object") return;
+
+      const src = `HTTP ${sourceLabel}`;
+      const node        = Number(json.node);
+      const light       = Number(json.light) === 1 ? "ON" : "OFF";
+      const fan         = Number(json.fan) === 1 ? "ON" : "OFF";
+      const fanSpeed    = json.fan_speed !== undefined ? Number(json.fan_speed) : null;
+      const remoteNode  = Number(json.remote_node);
+      const remoteLight = Number(json.remote_light) === 1 ? "ON" : "OFF";
+      const remoteFan   = Number(json.remote_fan) === 1 ? "ON" : "OFF";
+      const remoteFanSp = json.remote_fan_speed !== undefined ? Number(json.remote_fan_speed) : null;
+
+      if (node === 1) {
+        if (DEVICES.esp1_light) updateDeviceUI("esp1_light", light, src);
+        if (DEVICES.esp1_fan)   updateDeviceUI("esp1_fan",   fan,   src, fanSpeed);
+        if (remoteNode === 2) {
+          if (DEVICES.esp2_light) updateDeviceUI("esp2_light", remoteLight, src);
+          if (DEVICES.esp2_fan)   updateDeviceUI("esp2_fan",   remoteFan,   src, remoteFanSp);
+        }
+      } else if (node === 2) {
+        if (DEVICES.esp2_light) updateDeviceUI("esp2_light", light, src);
+        if (DEVICES.esp2_fan)   updateDeviceUI("esp2_fan",   fan,   src, fanSpeed);
+        if (remoteNode === 1) {
+          if (DEVICES.esp1_light) updateDeviceUI("esp1_light", remoteLight, src);
+          if (DEVICES.esp1_fan)   updateDeviceUI("esp1_fan",   remoteFan,   src, remoteFanSp);
+        }
+      }
+    }
+
+    async function pollNode(ip, label) {
+      if (!ip) return;
+      const url = `http://${ip}/api/state`;
+      console.log("HTTP polling:", url);
+
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) {
+          console.warn("HTTP non-OK:", res.status, res.statusText);
+          return;
+        }
+        const json = await res.json();
+        console.log("HTTP state from", label, json);
+        applyHttpState(json, label);
+      } catch (err) {
+        console.error("HTTP error for", ip, err);
+      }
+    }
+
+    async function httpFallbackPoll() {
+      const ip1 = esp1IpInput.value.trim();
+      const ip2 = esp2IpInput.value.trim();
+
+      if (!ip1 && !ip2) {
+        alert("No ESP IPs known. (initApi should fill these automatically.)");
         return;
       }
 
-      // Fallback: HTTP GET /api/set
-      await sendHttpCommand(dev.id, newState);
-    });
-  });
-}
-
-// ====== Scenario Mode Badge Logic ======
-function updateScenarioBadge() {
-  if (!scenarioBadge) return;
-
-  let scenarioClass = "router-cloud";
-  let label = "Mode: Router+Cloud";
-
-  if (client && client.connected) {
-    if (currentMode === "cloud") {
-      scenarioClass = "router-cloud";
-      label = "Mode: Router+Cloud (MQTT)";
-    } else if (currentMode === "local") {
-      scenarioClass = "router-local";
-      label = "Mode: Router Local (MQTT)";
-    }
-  } else {
-    const host = window.location.hostname || "";
-    // AP mesh typically 192.168.4.x
-    if (/^192\.168\.4\./.test(host)) {
-      scenarioClass = "ap-mesh";
-      label = "Mode: AP Mesh (HTTP only)";
-    }
-    // Private LAN (router local) 192.168.x, 10.x, 172.16-31.x
-    else if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) {
-      scenarioClass = "router-local";
-      label = "Mode: Router Local (HTTP only)";
-    } else {
-      scenarioClass = "router-cloud";
-      label = "Mode: Router+Cloud (offline / HTTP)";
+      modeLabel.textContent = "HTTP fallback: polling /api/state…";
+      await Promise.all([
+        pollNode(ip1, "ESP1"),
+        pollNode(ip2, "ESP2")
+      ]);
+      modeLabel.textContent = "HTTP fallback: last poll completed";
     }
 
-    // If we got /api/info, we can refine label
-    if (apiInfo && typeof apiInfo.mode === "string") {
-      if (apiInfo.mode === "AP_STA" || apiInfo.mode === "AP") {
-        scenarioClass = "ap-mesh";
-        label = "Mode: AP Mesh (HTTP only)";
-      } else if (apiInfo.mode === "STA") {
-        // no MQTT → router local HTTP
-        scenarioClass = "router-local";
-        label = "Mode: Router Local (HTTP only)";
+    httpFallbackBtn.addEventListener("click", httpFallbackPoll);
+
+    // ====== HTTP COMMANDS ======
+    async function sendLightCommand(deviceId, newState) {
+      const [nodeStr, devType] = deviceId.split("_"); // "esp1", "light"
+      const nodeNum = nodeStr === "esp1" ? 1 : 2;
+
+      let ip = "";
+      if (nodeNum === 1) {
+        ip = esp1IpInput.value.trim() || window.location.hostname;
+      } else if (nodeNum === 2) {
+        ip = esp2IpInput.value.trim() || window.location.hostname;
+      }
+
+      if (!ip) {
+        alert("No IP known for " + nodeStr.toUpperCase());
+        return;
+      }
+
+      const val = newState === "ON" ? 1 : 0;
+      const url = `http://${ip}/api/set?node=${nodeNum}&${devType}=${val}`;
+
+      console.log("HTTP SET (light) →", url);
+      try {
+        const res = await fetch(url, { method: "GET", cache: "no-store" });
+        if (!res.ok) {
+          console.warn("HTTP SET non-OK:", res.status, res.statusText);
+        } else {
+          const json = await res.json();
+          console.log("HTTP SET resp:", json);
+          applyHttpState(json, `ESP${nodeNum}`);
+        }
+      } catch (err) {
+        console.error("HTTP SET error:", err);
+        alert("HTTP command failed for " + nodeStr.toUpperCase());
       }
     }
-  }
 
-  scenarioBadge.textContent = label;
-  scenarioBadge.className = "mode-badge " + scenarioClass;
-}
+    async function sendFanSpeed(deviceId, speed) {
+      const [nodeStr] = deviceId.split("_"); // "esp1"
+      const nodeNum = nodeStr === "esp1" ? 1 : 2;
 
-// ====== initApi: auto-detect host, call /api/info, fill IPs ======
-async function initApi() {
-  const host = window.location.hostname || "";
+      let ip = "";
+      if (nodeNum === 1) {
+        ip = esp1IpInput.value.trim() || window.location.hostname;
+      } else if (nodeNum === 2) {
+        ip = esp2IpInput.value.trim() || window.location.hostname;
+      }
 
-  // 1) Auto-fill based on hostname if it's a private IP
-  if (/^192\.168\.4\./.test(host)) {
-    // AP mesh: controlling through the node you’re connected to.
-    esp1IpInput.value = host;
-    esp2IpInput.value = host; // same node also proxies remote via ESP-NOW
-  } else if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) {
-    // Router local (STA)
-    esp1IpInput.value = host;
-    esp2IpInput.value = host;
-  }
+      if (!ip) {
+        alert("No IP known for " + nodeStr.toUpperCase());
+        return;
+      }
 
-  // 2) Try /api/info on the same host (if running from ESP)
-  if (host && host !== "localhost") {
-    try {
-      const res = await fetch(`http://${host}/api/info`, { cache: "no-store" });
-      if (res.ok) {
-        apiInfo = await res.json();
-        console.log("API info:", apiInfo);
+      const url = `http://${ip}/api/set?node=${nodeNum}&fanSpeed=${speed}`;
+      console.log("HTTP SET (fanSpeed) →", url);
 
-        // If we know the node number, you can customize behavior later
-        // Example: if node=1, treat host as ESP1, etc.
-        // For now, host already in IP boxes is good enough.
+      try {
+        const res = await fetch(url, { method: "GET", cache: "no-store" });
+        if (!res.ok) {
+          console.warn("HTTP SET fanSpeed non-OK:", res.status, res.statusText);
+        } else {
+          const json = await res.json();
+          console.log("HTTP SET fanSpeed resp:", json);
+          applyHttpState(json, `ESP${nodeNum}`);
+        }
+      } catch (err) {
+        console.error("HTTP SET fanSpeed error:", err);
+        alert("HTTP fan speed failed for " + nodeStr.toUpperCase());
+      }
+    }
+
+    // ====== Button bindings ======
+    function bindButtons() {
+      Object.values(DEVICES).forEach(dev => {
+        // Round circle on desktop/tablet
+        const circle = document.getElementById("circle-" + dev.id);
+        if (circle) {
+          circle.addEventListener("click", async () => {
+            if (dev.type === "light") {
+              const newState = dev.state === "ON" ? "OFF" : "ON";
+              if (client && client.connected) {
+                client.publish(dev.cmdTopic, newState, { qos: 0, retain: false });
+              } else {
+                await sendLightCommand(dev.id, newState);
+              }
+            } else if (dev.type === "fan") {
+              // Toggle ON/OFF but keep current speed if >0 (default to 1)
+              let speed = dev.speed || 0;
+              if (dev.state === "OFF") {
+                if (speed === 0) speed = 1;
+              } else {
+                speed = 0;
+              }
+
+              if (client && client.connected) {
+                client.publish(dev.cmdTopic, String(speed), { qos: 0, retain: false });
+              } else {
+                await sendFanSpeed(dev.id, speed);
+              }
+            }
+          });
+        }
+
+        // Desktop fan slider
+        if (dev.type === "fan") {
+          const slider = document.getElementById("speed-" + dev.id);
+          if (slider) {
+            slider.addEventListener("change", async () => {
+              const speed = Number(slider.value);
+              dev.speed = speed;
+              // state ON if speed>0
+              dev.state = speed > 0 ? "ON" : "OFF";
+              updateDeviceUI(dev.id, dev.state, "Local UI", speed);
+
+              if (client && client.connected) {
+                client.publish(dev.cmdTopic, String(speed), { qos: 0, retain: false });
+              } else {
+                await sendFanSpeed(dev.id, speed);
+              }
+            });
+          }
+
+          // Mobile slider
+          const mSlider = document.getElementById("mspeed-" + dev.id);
+          if (mSlider) {
+            mSlider.addEventListener("change", async () => {
+              const speed = Number(mSlider.value);
+              dev.speed = speed;
+              dev.state = speed > 0 ? "ON" : "OFF";
+              updateDeviceUI(dev.id, dev.state, "Local UI", speed);
+
+              if (client && client.connected) {
+                client.publish(dev.cmdTopic, String(speed), { qos: 0, retain: false });
+              } else {
+                await sendFanSpeed(dev.id, speed);
+              }
+            });
+          }
+        }
+
+        // Mobile round button
+        const mRound = document.getElementById("mround-" + dev.id);
+        if (mRound) {
+          mRound.addEventListener("click", async () => {
+            if (dev.type === "light") {
+              const newState = dev.state === "ON" ? "OFF" : "ON";
+              if (client && client.connected) {
+                client.publish(dev.cmdTopic, newState, { qos: 0, retain: false });
+              } else {
+                await sendLightCommand(dev.id, newState);
+              }
+            } else if (dev.type === "fan") {
+              let speed = dev.speed || 0;
+              if (dev.state === "OFF") {
+                if (speed === 0) speed = 1;
+              } else {
+                speed = 0;
+              }
+
+              if (client && client.connected) {
+                client.publish(dev.cmdTopic, String(speed), { qos: 0, retain: false });
+              } else {
+                await sendFanSpeed(dev.id, speed);
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // ====== Scenario Mode Badge Logic ======
+    function updateScenarioBadge() {
+      if (!scenarioBadge) return;
+
+      let scenarioClass = "router-cloud";
+      let label = "Mode: Router+Cloud";
+
+      if (client && client.connected) {
+        if (currentMode === "cloud") {
+          scenarioClass = "router-cloud";
+          label = "Mode: Router+Cloud (MQTT)";
+        } else if (currentMode === "local") {
+          scenarioClass = "router-local";
+          label = "Mode: Router Local (MQTT)";
+        }
       } else {
-        console.log("/api/info not available, status:", res.status);
+        const host = window.location.hostname || "";
+        if (/^192\.168\.4\./.test(host)) {
+          scenarioClass = "ap-mesh";
+          label = "Mode: AP Mesh (HTTP only)";
+        } else if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) {
+          scenarioClass = "router-local";
+          label = "Mode: Router Local (HTTP only)";
+        } else {
+          scenarioClass = "router-cloud";
+          label = "Mode: Router+Cloud (offline / HTTP)";
+        }
+
+        if (apiInfo && typeof apiInfo.mode === "string") {
+          if (apiInfo.mode === "AP_STA" || apiInfo.mode === "AP") {
+            scenarioClass = "ap-mesh";
+            label = "Mode: AP Mesh (HTTP only)";
+          } else if (apiInfo.mode === "STA") {
+            scenarioClass = "router-local";
+            label = "Mode: Router Local (HTTP only)";
+          }
+        }
       }
-    } catch (e) {
-      console.log("Could not fetch /api/info:", e.message || e);
+
+      scenarioBadge.textContent = label;
+      scenarioBadge.className = "mode-badge " + scenarioClass;
     }
-  }
 
-  updateScenarioBadge();
-}
+    // ====== initApi: auto-detect host, call /api/info, fill IPs ======
+    async function initApi() {
+      const host = window.location.hostname || "";
 
-// ====== Startup ======
-bindButtons();
-initApi();              // <--- auto-detect & /api/info
-startConnectionFlow();  // <--- MQTT connect
-updateScenarioBadge();
-setInterval(updateScenarioBadge, 2000); // keep it fresh while testing
-</script>
+      if (/^192\.168\.4\./.test(host)) {
+        esp1IpInput.value = host;
+        esp2IpInput.value = host;
+      } else if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) {
+        esp1IpInput.value = host;
+        esp2IpInput.value = host;
+      }
+
+      if (host && host !== "localhost") {
+        try {
+          const res = await fetch(`http://${host}/api/info`, { cache: "no-store" });
+          if (res.ok) {
+            apiInfo = await res.json();
+            console.log("API info:", apiInfo);
+          } else {
+            console.log("/api/info not available, status:", res.status);
+          }
+        } catch (e) {
+          console.log("Could not fetch /api/info:", e.message || e);
+        }
+      }
+
+      updateScenarioBadge();
+    }
+
+    // ====== Startup ======
+    bindButtons();
+    initApi();
+    startConnectionFlow();
+    updateScenarioBadge();
+    setInterval(updateScenarioBadge, 2000);
+  </script>
 </body>
 </html>
