@@ -307,11 +307,188 @@
         font-size: 1.25rem;
       }
     }
+
+    /* ===== Auth UI ===== */
+    #authContainer {
+      display: none; /* default hidden, JS decides initial */
+    }
+    .auth-wrapper {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    .auth-card {
+      background: #020617;
+      border-radius: 24px;
+      border: 1px solid #1e293b;
+      box-shadow: 0 16px 60px rgba(0,0,0,0.85);
+      padding: 24px 22px 26px;
+    }
+    .auth-title {
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .auth-subtitle {
+      text-align: center;
+      font-size: 0.82rem;
+      opacity: 0.75;
+      margin-bottom: 18px;
+    }
+    .auth-label {
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .auth-input {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid #1e293b;
+      background: #020617;
+      padding: 6px 12px;
+      color: #e5e7eb;
+      font-size: 0.82rem;
+      outline: none;
+    }
+    .auth-input::placeholder {
+      color: #6b7280;
+    }
+    .auth-field {
+      margin-bottom: 10px;
+    }
+    .auth-btn {
+      width: 100%;
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      padding: 8px 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 12px 35px rgba(37,99,235,0.4);
+      transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.1s ease;
+    }
+    .auth-btn:hover {
+      background: #1d4ed8;
+    }
+    .auth-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 20px rgba(15,23,42,0.9);
+    }
+    .auth-footer {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 0.78rem;
+      opacity: 0.8;
+    }
+    .auth-toggle {
+      border: none;
+      background: transparent;
+      color: #60a5fa;
+      font-size: 0.78rem;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 4px;
+    }
+    .auth-error {
+      margin-top: 6px;
+      color: #f87171;
+      font-size: 0.78rem;
+    }
+    .auth-input-error {
+      border-color: #f97373;
+    }
+
+    .logout-btn {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      border-radius: 999px;
+      border: 1px solid #1e293b;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .logout-btn:hover {
+      background: #020617;
+    }
+    .app-header-row {
+      position: relative;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Smart Home Mesh – ESP1 &amp; ESP2</h1>
+  <!-- ===== AUTH CONTAINER ===== -->
+  <div id="authContainer" class="container">
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <div class="auth-title" id="authTitle">Welcome back 👋</div>
+        <div class="auth-subtitle" id="authSubtitle">
+          Sign in to control your Smart Home Mesh.
+        </div>
+
+        <form id="authForm" novalidate>
+          <div class="auth-field" id="nameField" style="display:none;">
+            <label class="auth-label" for="nameInput">Name</label>
+            <input
+              id="nameInput"
+              type="text"
+              class="auth-input"
+              placeholder="Your name"
+            />
+          </div>
+
+          <div class="auth-field">
+            <label class="auth-label" for="emailInput">Email</label>
+            <input
+              id="emailInput"
+              type="email"
+              class="auth-input"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          <div class="auth-field">
+            <label class="auth-label" for="passwordInput">Password</label>
+            <input
+              id="passwordInput"
+              type="password"
+              class="auth-input"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          <div id="authError" class="auth-error" style="display:none;"></div>
+
+          <button type="submit" class="auth-btn" id="authSubmitBtn">
+            Sign In
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          <span id="authFooterText">Don't have an account?</span>
+          <button id="authToggleBtn" class="auth-toggle" type="button">
+            Sign up
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD CONTAINER ===== -->
+  <div id="dashboardContainer" class="container" style="display:none;">
+    <div class="app-header-row">
+      <h1 id="dashboardTitle">Smart Home Mesh – ESP1 &amp; ESP2</h1>
+      <button id="logoutBtn" class="logout-btn" type="button">
+        Logout
+      </button>
+    </div>
+
     <div id="modeLabel" class="mode">Connecting…</div>
 
     <!-- Mode badge -->
@@ -467,7 +644,9 @@
   </div>
 
   <script>
-    // ====== CONFIG (topics & MQTT) ======
+    // ====== CONFIG ======
+    const API_BASE = 'https://smart-home-backend-g1hu.onrender.com';
+
     const DEVICES = {
       esp1_light: {
         id: "esp1_light",
@@ -513,7 +692,7 @@
     const isHttps = window.location.protocol === "https:";
     const canUseLocal = !isHttps; // avoid ws:// from https page
 
-    // ====== UI ELEMENTS ======
+    // ====== UI ELEMENTS (dashboard) ======
     const modeLabel       = document.getElementById("modeLabel");
     const localStatus     = document.getElementById("localStatus");
     const cloudStatus     = document.getElementById("cloudStatus");
@@ -521,6 +700,168 @@
     const esp2IpInput     = document.getElementById("esp2Ip");
     const httpFallbackBtn = document.getElementById("httpFallbackBtn");
     const scenarioBadge   = document.getElementById("scenarioBadge");
+    const dashboardContainer = document.getElementById("dashboardContainer");
+    const authContainer  = document.getElementById("authContainer");
+    const dashboardTitle = document.getElementById("dashboardTitle");
+    const logoutBtn      = document.getElementById("logoutBtn");
+
+    // ====== UI ELEMENTS (auth) ======
+    const authForm      = document.getElementById("authForm");
+    const authTitle     = document.getElementById("authTitle");
+    const authSubtitle  = document.getElementById("authSubtitle");
+    const authSubmitBtn = document.getElementById("authSubmitBtn");
+    const authError     = document.getElementById("authError");
+    const authFooterTxt = document.getElementById("authFooterText");
+    const authToggleBtn = document.getElementById("authToggleBtn");
+    const nameField     = document.getElementById("nameField");
+    const nameInput     = document.getElementById("nameInput");
+    const emailInput    = document.getElementById("emailInput");
+    const passwordInput = document.getElementById("passwordInput");
+
+    // ====== Auth state ======
+    let isLoginMode = true;
+    let authToken = null;
+    let authEmail = null;
+    let dashboardStarted = false;
+
+    function setAuthUIFromMode() {
+      if (isLoginMode) {
+        authTitle.textContent = "Welcome back 👋";
+        authSubtitle.textContent = "Sign in to control your Smart Home Mesh.";
+        authSubmitBtn.textContent = "Sign In";
+        authFooterTxt.textContent = "Don't have an account?";
+        authToggleBtn.textContent = "Sign up";
+        nameField.style.display = "none";
+      } else {
+        authTitle.textContent = "Create an account ✨";
+        authSubtitle.textContent = "Sign up to get started with your Smart Home Mesh.";
+        authSubmitBtn.textContent = "Sign Up";
+        authFooterTxt.textContent = "Already have an account?";
+        authToggleBtn.textContent = "Sign in";
+        nameField.style.display = "block";
+      }
+      authError.style.display = "none";
+      authError.textContent = "";
+    }
+
+    function showAuth() {
+      authContainer.style.display = "block";
+      dashboardContainer.style.display = "none";
+    }
+
+    function showDashboard() {
+      authContainer.style.display = "none";
+      dashboardContainer.style.display = "block";
+      dashboardTitle.textContent = `Smart Home Mesh – ${authEmail || "User"}`;
+
+      if (!dashboardStarted) {
+        dashboardStarted = true;
+        bindButtons();
+        initApi();
+        startConnectionFlow();
+        updateScenarioBadge();
+        setInterval(updateScenarioBadge, 2000);
+      }
+    }
+
+    function setAuthState(token, email) {
+      authToken = token;
+      authEmail = email;
+      localStorage.setItem("smarthome_token", token);
+      localStorage.setItem("smarthome_email", email);
+    }
+
+    function clearAuthState() {
+      authToken = null;
+      authEmail = null;
+      localStorage.removeItem("smarthome_token");
+      localStorage.removeItem("smarthome_email");
+    }
+
+    authToggleBtn.addEventListener("click", () => {
+      isLoginMode = !isLoginMode;
+      setAuthUIFromMode();
+    });
+
+    authForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      authError.style.display = "none";
+      authError.textContent = "";
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const name = nameInput.value.trim();
+
+      if (!email || !email.includes("@")) {
+        authError.textContent = "Please enter a valid email.";
+        authError.style.display = "block";
+        return;
+      }
+      if (!password || password.length < 6) {
+        authError.textContent = "Password must be at least 6 characters.";
+        authError.style.display = "block";
+        return;
+      }
+      if (!isLoginMode && !name) {
+        authError.textContent = "Name is required for signup.";
+        authError.style.display = "block";
+        return;
+      }
+
+      authSubmitBtn.disabled = true;
+      authSubmitBtn.textContent = isLoginMode ? "Signing in..." : "Signing up...";
+
+      try {
+        const endpoint = isLoginMode ? "/auth/signin" : "/auth/signup";
+        const body = { email, password };
+        if (!isLoginMode) body.name = name;
+
+        const res = await fetch(API_BASE + endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const token = (data.token || "").toString();
+          if (!token) {
+            authError.textContent = "No token returned from server.";
+            authError.style.display = "block";
+          } else {
+            setAuthState(token, email);
+            showDashboard();
+          }
+        } else {
+          let msg = "Error: " + res.status;
+          try {
+            const data = await res.json();
+            if (data.message) msg = data.message;
+          } catch (_) {}
+          authError.textContent = msg;
+          authError.style.display = "block";
+        }
+      } catch (err) {
+        authError.textContent = "Network error: " + err;
+        authError.style.display = "block";
+      } finally {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.textContent = isLoginMode ? "Sign In" : "Sign Up";
+      }
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      clearAuthState();
+      showAuth();
+    });
+
+    setAuthUIFromMode();
+
+    // ===== DASHBOARD / MQTT / HTTP LOGIC (unchanged, wrapped into functions) =====
+    let client = null;
+    let currentMode = ""; // "local" or "cloud"
+    let subscriptionsDone = false;
+    let apiInfo = null;
 
     function setPill(el, text, cls) {
       el.textContent = text;
@@ -545,9 +886,7 @@
       }
 
       if (stateEl) {
-        let label = "Light";
-        if (deviceId.endsWith("light2")) label = "Light 2";
-        else label = "Light 1";
+        let label = deviceId.endsWith("light2") ? "Light 2" : "Light 1";
         stateEl.textContent = isOn ? `${label} is ON` : `${label} is OFF`;
       }
 
@@ -567,11 +906,6 @@
     }
 
     Object.keys(DEVICES).forEach(id => updateDeviceUI(id, "OFF", ""));
-
-    let client = null;
-    let currentMode = ""; // "local" or "cloud"
-    let subscriptionsDone = false;
-    let apiInfo = null;
 
     function setupSubscriptions() {
       if (!client || subscriptionsDone) return;
@@ -717,7 +1051,6 @@
       });
     }
 
-    // ====== HTTP STATE (/api/state) ======
     function applyHttpState(json, sourceLabel) {
       if (!json || typeof json !== "object") return;
 
@@ -770,7 +1103,7 @@
       const ip2 = esp2IpInput.value.trim();
 
       if (!ip1 && !ip2) {
-        alert("No ESP IPs known. (initApi should fill these automatically.)");
+        alert("No ESP IPs known.");
         return;
       }
 
@@ -784,9 +1117,8 @@
 
     httpFallbackBtn.addEventListener("click", httpFallbackPoll);
 
-    // ====== HTTP commands for lights ======
     async function sendLightCommand(deviceId, newState) {
-      const [nodeStr, devType] = deviceId.split("_"); // "esp1", "light" or "light2"
+      const [nodeStr, devType] = deviceId.split("_"); // "esp1","light" or "light2"
       const nodeNum = nodeStr === "esp1" ? 1 : 2;
 
       let ip = "";
@@ -820,7 +1152,6 @@
       }
     }
 
-    // ====== Button bindings ======
     function bindButtons() {
       Object.values(DEVICES).forEach(dev => {
         const circle = document.getElementById("circle-" + dev.id);
@@ -849,7 +1180,6 @@
       });
     }
 
-    // ====== Scenario Mode Badge Logic ======
     function updateScenarioBadge() {
       if (!scenarioBadge) return;
 
@@ -892,7 +1222,6 @@
       scenarioBadge.className = "mode-badge " + scenarioClass;
     }
 
-    // ====== initApi ======
     async function initApi() {
       const host = window.location.hostname || "";
 
@@ -921,12 +1250,19 @@
       updateScenarioBadge();
     }
 
-    // ====== Startup ======
-    bindButtons();
-    initApi();
-    startConnectionFlow();
-    updateScenarioBadge();
-    setInterval(updateScenarioBadge, 2000);
+    // ===== INITIAL LOAD: check saved auth =====
+    (function initApp() {
+      const savedToken = localStorage.getItem("smarthome_token");
+      const savedEmail = localStorage.getItem("smarthome_email");
+
+      if (savedToken && savedEmail) {
+        authToken = savedToken;
+        authEmail = savedEmail;
+        showDashboard();
+      } else {
+        showAuth();
+      }
+    })();
   </script>
 </body>
 </html>
